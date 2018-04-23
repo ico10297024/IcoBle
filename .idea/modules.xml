@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="ProjectModuleManager">
+    <modules>
+      <module fileurl="file://$PROJECT_DIR$/BleLock/BleLock.iml" filepath="$PROJECT_DIR$/BleLock/BleLock.iml" />
+      <module fileurl="file://$PROJECT_DIR$/Ico/Ico.iml" filepath="$PROJECT_DIR$/Ico/Ico.iml" />
+      <module fileurl="file://$PROJECT_DIR$/.idea/modules/IcoBle.iml" filepath="$PROJECT_DIR$/.idea/modules/IcoBle.iml" />
+      <module fileurl="file://$PROJECT_DIR$/IcoStudy.iml" filepath="$PROJECT_DIR$/IcoStudy.iml" />
+      <module fileurl="file://$PROJECT_DIR$/KMedia/KMedia.iml" filepath="$PROJECT_DIR$/KMedia/KMedia.iml" />
+      <module fileurl="file://$PROJECT_DIR$/KMediaTest/KMediaTest.iml" filepath="$PROJECT_DIR$/KMediaTest/KMediaTest.iml" />
+      <module fileurl="file://$PROJECT_DIR$/UniversalDeviceController/UniversalDeviceController.iml" filepath="$PROJECT_DIR$/UniversalDeviceController/UniversalDeviceController.iml" />
+      <module fileurl="file://$PROJECT_DIR$/WheelPicker/WheelPicker.iml" filepath="$PROJECT_DIR$/WheelPicker/WheelPicker.iml" />
+      <module fileurl="file://$PROJECT_DIR$/app/app.iml" filepath="$PROJECT_DIR$/app/app.iml" />
+      <module fileurl="file://$PROJECT_DIR$/bubbleseekbar/bubbleseekbar.iml" filepath="$PROJECT_DIR$/bubbleseekbar/bubbleseekbar.iml" />
+      <module fileurl="file://$PROJECT_DIR$/bubbleseekbar1/bubbleseekbar1.iml" filepath="$PROJECT_DIR$/bubbleseekbar1/bubbleseekbar1.iml" />
+      <module fileurl="file://$PROJECT_DIR$/library/library.iml" filepath="$PROJECT_DIR$/library/library.iml" />
+      <module fileurl="file://$PROJECT_DIR$/nfcsimulator/nfcsimulator.iml" filepath="$PROJECT_DIR$/nfcsimulator/nfcsimulator.iml" />
+      <module fileurl="file://$PROJECT_DIR$/pay/pay.iml" filepath="$PROJECT_DIR$/pay/pay.iml" />
+      <module fileurl="file://$PROJECT_DIR$/sample/sample.iml" filepath="$PROJECT_DIR$/sample/sample.iml" />
+      <module fileurl="file://$PROJECT_DIR$/video/video.iml" filepath="$PROJECT_DIR$/video/video.iml" />
+    </modules>
+  </component>
+</project>
