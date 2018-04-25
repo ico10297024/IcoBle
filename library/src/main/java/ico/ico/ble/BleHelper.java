@@ -77,12 +77,13 @@ public class BleHelper {
         mContext.registerReceiver(foundReceiver, new IntentFilter(ACTION_FOUND));
         mContext.registerReceiver(foundReceiver, new IntentFilter(BluetoothDevice.ACTION_FOUND));
         //初始化搜索器
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
-            scanner = new Scanner21();
-        } else {
-            scanner = new Scanner();
-        }
-//        scanner = new Scanner();
+        //TODO 根据测试,高版本系统使用低版本的搜索函数,比使用高版本的搜索函数效率高
+//        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
+//            scanner = new Scanner21();
+//        } else {
+//            scanner = new Scanner();
+//        }
+        scanner = new Scanner();
     }
 
     //region static
@@ -235,24 +236,28 @@ public class BleHelper {
 
         @Override
         public void startScan() {
-            if (scanThread == null || scanThread.isClosed()) {
-                scanThread = new ScanThread();
-                scanThread.start();
-            }
+            getBleAdapter(mContext).startLeScan(leScanCallback);
+//            if (scanThread == null || scanThread.isClosed()) {
+//                scanThread = new ScanThread();
+//                scanThread.start();
+//            }
         }
 
         @Override
         public void stopScan() {
-            if (scanThread != null) {
-                scanThread.close();
-                scanThread = null;
-            }
+            getBleAdapter(mContext).stopLeScan(leScanCallback);
+//            if (scanThread != null) {
+//                scanThread.close();
+//                scanThread = null;
+//            }
         }
 
         /**
          * 用于定时间隔关闭和开启搜索的线程
          * <p>
          * 由于5.0以下安卓系统在搜索到一个设备后将不会再搜索到这个设备,所以需要做定时开关来反复搜索
+         * <p>
+         * 20180425 华为荣耀6,api19,测试可以反复搜索到同一个设备,所以暂时不用这个线程
          */
         class ScanThread extends IcoThread {
 

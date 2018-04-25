@@ -17,23 +17,27 @@ import rx.functions.Action1;
 /**
  * 根据协议编写的一个设备管理器
  */
-public class BleZmyMgr {
+public class BleMgr {
     //当前操作标识
     CurrentOperationFlag currentOperationFlag = new CurrentOperationFlag();
     //超时时间
     private long TIMESOUT = 15 * 1000L;
     //蓝牙连接
     private BleSocket mBleSocket;
+    /**
+     * TODO 支持的设备列表,通过{@link BleSocket#setSupportBle(BleSocket.BLeUUIDI...)}设置可支持的设备列表,在BleSocket成功连接上蓝牙设备后会自动匹配列表,匹配成功后将使用对应设备的UUID进行收发数据
+     */
+    private BleUUID[] mSupportBle = new BleUUID[]{BleUUID.getInstance()};
 
     /**
      * 电量
      */
     private int power;
 
-    public BleZmyMgr() {
+    public BleMgr() {
     }
 
-    public BleZmyMgr(BleSocket bleSocket) {
+    public BleMgr(BleSocket bleSocket) {
         setBleSocket(bleSocket);
     }
 
@@ -88,7 +92,7 @@ public class BleZmyMgr {
 
     public void setBleSocket(BleSocket bleSocket) {
         this.mBleSocket = bleSocket;
-        this.mBleSocket.setSupportBle(BleUUID.getInstance());
+        this.mBleSocket.setSupportBle(mSupportBle);
     }
 
     public int getPower() {

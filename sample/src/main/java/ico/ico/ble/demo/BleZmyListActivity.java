@@ -25,7 +25,7 @@ import ico.ico.ble.BleSocket;
 import ico.ico.ble.demo.base.BaseAdapter;
 import ico.ico.ble.demo.base.BaseDialogFrag;
 import ico.ico.ble.demo.base.BaseFragActivity;
-import ico.ico.ble.demo.blemgr.BleZmyMgr;
+import ico.ico.ble.demo.blemgr.BleMgr;
 import ico.ico.ble.demo.constant.RegularConstant;
 import ico.ico.ble.demo.db.Device;
 import ico.ico.ble.demo.db.DeviceDao;
@@ -155,7 +155,7 @@ public class BleZmyListActivity extends BaseFragActivity implements EasyPermissi
                     aboutControl.open();
                     break;
                 case R.id.btn_query:
-                    aboutControl.open();
+                    aboutControl.queryPower();
                     break;
             }
         }
@@ -172,7 +172,7 @@ public class BleZmyListActivity extends BaseFragActivity implements EasyPermissi
     class AboutControl {
 
         MyBleCallback mBleCallback;
-        BleZmyMgr mBleZmyMgr;
+        BleMgr mBleMgr;
         BleSocket mBleSocket;
         Action1 timeTask = new Action1() {
             @Override
@@ -188,10 +188,10 @@ public class BleZmyListActivity extends BaseFragActivity implements EasyPermissi
                 } else {
                     msg = "超时！";
                 }
-                if (mBleSocket != null) {
+                if (!mBleSocket.isClosed()) {
                     mBleSocket.close();
                 }
-                mBleZmyMgr.getCurrentOperationFlag().finishOper();
+                mBleMgr.getCurrentOperationFlag().finishOper();
                 showToast(msg);
             }
         };
@@ -199,7 +199,7 @@ public class BleZmyListActivity extends BaseFragActivity implements EasyPermissi
         public AboutControl() {
             mBleCallback = new MyBleCallback();
             mBleSocket = new BleSocket(mActivity, mBleCallback);
-            mBleZmyMgr = new BleZmyMgr(mBleSocket);
+            mBleMgr = new BleMgr(mBleSocket);
         }
 
         void showProgressDialog() {
@@ -210,14 +210,14 @@ public class BleZmyListActivity extends BaseFragActivity implements EasyPermissi
             if (!check()) return;
             mBleSocket.reset();
             showProgressDialog();
-            mBleZmyMgr.open(timeTask);
+            mBleMgr.open(timeTask);
         }
 
         public void queryPower() {
             if (!check()) return;
             mBleSocket.reset();
             showProgressDialog();
-            mBleZmyMgr.open(timeTask);
+            mBleMgr.open(timeTask);
         }
 
 
@@ -242,11 +242,6 @@ public class BleZmyListActivity extends BaseFragActivity implements EasyPermissi
         }
 
         class MyBleCallback extends BleCallback {
-            int i = 30;
-            int s = 0;
-            int f = 0;
-            String message = "";
-
             @Override
             public void found(BluetoothDevice device, int rssi) {
                 super.found(device, rssi);
@@ -265,40 +260,29 @@ public class BleZmyListActivity extends BaseFragActivity implements EasyPermissi
             @Override
             public void receive(BleSocket bleSocket, String uuid, byte[] instruct) {
                 super.receive(bleSocket, uuid, instruct);
-                byte cmd = mBleZmyMgr.analyze(instruct);
+                byte cmd = mBleMgr.analyze(instruct);
                 if (cmd == -1) {
                     return;
                 }
                 switch (cmd) {
-                    case BleZmyMgr.Command.CMD_OPEN://开门指令发送成功
+                    case BleMgr.Command.CMD_OPEN://开门指令发送成功
                         //UI处理,蓝牙处理
                         dismissDialog();
-                        mHandler.postDelayed(new Runnable() {
-                            @Override
-                            public void run() {
-                                showToast("开门成功");
-                                mBleSocket.close();
-                            }
-                        }, 500);
+                        showToast("开门成功");
+                        mBleSocket.close();
                         break;
-                    case BleZmyMgr.Command.CMD_QUERY_POWER://查询电量成功
+                    case BleMgr.Command.CMD_QUERY_POWER://查询电量成功
                         dismissDialog();
-                        mHandler.postDelayed(new Runnable() {
-                            @Override
-                            public void run() {
-                                showToast("查询电量成功,电量为" + mBleZmyMgr.getBleSocket());
-                                mBleSocket.close();
-                            }
-                        }, 500);
+                        showToast("查询电量成功,电量为" + mBleMgr.getBleSocket());
+                        mBleSocket.close();
                         break;
                 }
             }
 
-
             @Override
             public void sendFail(BleSocket bleSocket, byte[] instruct, int failStatus) {
                 super.sendFail(bleSocket, instruct, failStatus);
-                byte cmd = mBleZmyMgr.analyze(instruct);
+                byte cmd = mBleMgr.analyze(instruct);
                 if (cmd == -1) {
                     return;
                 }
@@ -323,7 +307,7 @@ public class BleZmyListActivity extends BaseFragActivity implements EasyPermissi
             public void connectFail(BleSocket bleSocket, int failStatus) {
                 super.connectFail(bleSocket, failStatus);
                 dismissDialog();
-                if (mBleZmyMgr.getCurrentOperationFlag().isOpering()) {
+                if (mBleMgr.getCurrentOperationFlag().isOpering()) {
                     String msg = "";
                     switch (failStatus) {
                         case BleSocket.FAIL_STATUS_SERVICES_UNDISCOVER:
@@ -333,21 +317,19 @@ public class BleZmyListActivity extends BaseFragActivity implements EasyPermissi
                             msg = "连接失败";
                             break;
                     }
-                    mBleZmyMgr.getCurrentOperationFlag().finishOper();
+                    mBleMgr.getCurrentOperationFlag().finishOper();
                     showToast(msg);
                 }
-                mBleSocket.close();
             }
 
             @Override
             public void disconnect(BleSocket _BleSocket) {
                 super.disconnect(_BleSocket);
                 dismissDialog();
-                if (mBleZmyMgr.getCurrentOperationFlag().isOpering()) {
+                if (mBleMgr.getCurrentOperationFlag().isOpering()) {
                     showToast("连接失败");
-                    mBleZmyMgr.getCurrentOperationFlag().finishOper();
+                    mBleMgr.getCurrentOperationFlag().finishOper();
                 }
-                mBleSocket.close();
             }
         }
     }

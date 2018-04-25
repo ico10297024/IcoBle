@@ -243,7 +243,6 @@ public class BleSocket {
         }
     }
 
-
     /**
      * 不使用该类时请调用该函数销毁
      */
