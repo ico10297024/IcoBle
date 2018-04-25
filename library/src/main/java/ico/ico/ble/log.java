@@ -5,7 +5,7 @@ import android.util.Log;
 /**
  * Created by admin on 2015/4/21.
  */
-public class log {
+class log {
     final static String COMMON_TAG = "ico_";
     /**
      * 日志等级,从e到v依次为1到5，若输出全关则设置0
@@ -17,7 +17,7 @@ public class log {
         if (LEVEL < 5) {
             return;
         }
-        String tag = COMMON_TAG + "v_" + Common.concat(tags, "_");
+        String tag = COMMON_TAG + "v_" + Common.concat("_", tags);
         Log.v(tag, msg);
     }
 
@@ -25,7 +25,7 @@ public class log {
         if (LEVEL < 4) {
             return;
         }
-        String tag = COMMON_TAG + "d_" + Common.concat(tags, "_");
+        String tag = COMMON_TAG + "d_" + Common.concat("_", tags);
         Log.d(tag, msg);
     }
 
@@ -33,7 +33,7 @@ public class log {
         if (LEVEL < 3) {
             return;
         }
-        String tag = COMMON_TAG + "i_" + Common.concat(tags, "_");
+        String tag = COMMON_TAG + "i_" + Common.concat("_", tags);
         Log.i(tag, msg);
     }
 
@@ -41,7 +41,7 @@ public class log {
         if (LEVEL < 2) {
             return;
         }
-        String tag = COMMON_TAG + "w_" + Common.concat(tags, "_");
+        String tag = COMMON_TAG + "w_" + Common.concat("_", tags);
         Log.w(tag, msg);
     }
 
@@ -49,7 +49,7 @@ public class log {
         if (LEVEL < 1) {
             return;
         }
-        String tag = COMMON_TAG + "e_" + Common.concat(tags, "_");
+        String tag = COMMON_TAG + "e_" + Common.concat("_", tags);
         Log.e(tag, msg);
     }
 
@@ -57,7 +57,7 @@ public class log {
         if (LEVEL < 3) {
             return;
         }
-        String tag = COMMON_TAG + Common.concat(tags, "_");
+        String tag = COMMON_TAG + Common.concat("_", tags);
         System.out.println(tag + "," + msg);
     }
 
@@ -65,7 +65,7 @@ public class log {
         if (LEVEL < 1) {
             return;
         }
-        String tag = COMMON_TAG + Common.concat(tags, "_");
+        String tag = COMMON_TAG + Common.concat("_", tags);
         System.err.println(tag + "," + msg);
     }
 }

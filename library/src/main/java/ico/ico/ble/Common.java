@@ -4,14 +4,14 @@ package ico.ico.ble;
  * Created by root on 18-4-19.
  */
 
-public class Common {
+class Common {
     /**
      * 将一个字符串数组根据某个字符串连接
      *
      * @param texts
      * @param str
      */
-    public static String concat(String[] texts, String str) {
+    public static String concat(String str, String... texts) {
         StringBuilder sb = new StringBuilder();
         for (int i = 0; i < texts.length; i++) {
             String tmp = texts[i];

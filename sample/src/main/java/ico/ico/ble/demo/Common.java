@@ -77,6 +77,24 @@ public class Common {
     }
 
     /**
+     * 将一个字符串数组根据某个字符串连接
+     *
+     * @param texts
+     * @param str
+     */
+    public static String concat(String str, String... texts) {
+        StringBuilder sb = new StringBuilder();
+        for (int i = 0; i < texts.length; i++) {
+            String tmp = texts[i];
+            sb.append(tmp);
+            if (i < texts.length - 1) {
+                sb.append(str);
+            }
+        }
+        return sb.toString();
+    }
+
+    /**
      * 将16进制字符串转换为byte
      *
      * @param hexStr

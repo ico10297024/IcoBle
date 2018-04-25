@@ -12,7 +12,6 @@ import android.content.IntentFilter;
 import android.os.Build;
 
 import java.util.List;
-import java.util.UUID;
 
 /**
  * 蓝牙4.0帮助类，用于操作蓝牙
@@ -28,10 +27,6 @@ public class BleHelper {
      * 蓝牙适配器
      */
     private static BluetoothAdapter mBleAdapter;
-    /**
-     * 用于搜索的通道ID,根据系统api,加了这个搜索效率比较快
-     */
-    UUID[] mServicesUUID;
     /**
      * 监听蓝牙状态更改
      */
@@ -62,20 +57,8 @@ public class BleHelper {
      * @param bleCallback 回调
      */
     public BleHelper(Context context, BleCallback bleCallback) {
-        this(context, null, bleCallback);
-    }
-
-    /**
-     * 该构造函数要求传入上下文,搜索服务的uuid以及回调对象,可以根据搜索服务器的uuid进行定向搜索
-     *
-     * @param context      当前界面的上下文
-     * @param servicesUUID 用于定向搜索的服务ID
-     * @param bleCallback  回调
-     */
-    public BleHelper(Context context, UUID[] servicesUUID, BleCallback bleCallback) {
         this.mContext = context;
         this.mBleCallback = bleCallback;
-        this.mServicesUUID = servicesUUID;
         //绑定广播
         foundReceiver = new BroadcastReceiver() {
             @Override
@@ -86,7 +69,7 @@ public class BleHelper {
                     if (mBleFilter != null && mBleFilter.onBleFilter(device)) {
                         mBleCallback.found(device, rssi);
                     } else {
-                        log.d(String.format("name:%s,mac:%s,rssi:%d,过滤设备", device.getName(), device.getAddress(), rssi));
+                        log.d(String.format("name:%s,mac:%s,rssi:%d,过滤设备", device.getName(), device.getAddress(), rssi, BleSocket.TAG));
                     }
                 }
             }
@@ -160,6 +143,7 @@ public class BleHelper {
      * 开启搜索
      */
     public void startScan() {
+        log.d("开启搜索", BleSocket.TAG);
         scanner.startScan();
     }
 
@@ -167,15 +151,8 @@ public class BleHelper {
      * 停止搜索
      */
     public void stopScan() {
+        log.d("结束搜索", BleSocket.TAG);
         scanner.stopScan();
-    }
-
-    public BleHelper setServicesUUID(String... servicesUUID) {
-        this.mServicesUUID = new UUID[servicesUUID.length];
-        for (int i = 0; i < servicesUUID.length; i++) {
-            mServicesUUID[i] = UUID.fromString(servicesUUID[i]);
-        }
-        return this;
     }
 
     /**
@@ -282,17 +259,13 @@ public class BleHelper {
             @Override
             public void run() {
                 while (!isClosed()) {
-                    if (mServicesUUID != null) {
-                        mBleAdapter.startLeScan(mServicesUUID, leScanCallback);
-                    } else {
-                        mBleAdapter.startLeScan(leScanCallback);
-                    }
+                    getBleAdapter(mContext).startLeScan(leScanCallback);
                     try {
                         Thread.currentThread().sleep(1000l);
                     } catch (InterruptedException e) {
                         e.printStackTrace();
                     }
-                    mBleAdapter.stopLeScan(leScanCallback);
+                    getBleAdapter(mContext).stopLeScan(leScanCallback);
                 }
             }
         }
@@ -310,7 +283,7 @@ public class BleHelper {
             @Override
             public void onScanResult(int callbackType, ScanResult result) {
                 super.onScanResult(callbackType, result);
-                log.w("onScanResult=======" + callbackType + "||" + result);
+                log.d("onScanResult=======" + callbackType + "||" + result, BleSocket.TAG);
                 Intent intent = new Intent(ACTION_FOUND);
                 intent.putExtra(BluetoothDevice.EXTRA_DEVICE, result.getDevice());
                 intent.putExtra(BluetoothDevice.EXTRA_RSSI, (short) result.getRssi());
@@ -320,13 +293,13 @@ public class BleHelper {
             @Override
             public void onBatchScanResults(List<ScanResult> results) {
                 super.onBatchScanResults(results);
-                log.w("onBatchScanResults=======" + results);
+                log.d("onBatchScanResults=======" + results, BleSocket.TAG);
             }
 
             @Override
             public void onScanFailed(int errorCode) {
                 super.onScanFailed(errorCode);
-                log.w("onBatchScanResults=======" + errorCode);
+                log.d("onBatchScanResults=======" + errorCode, BleSocket.TAG);
             }
         };
 

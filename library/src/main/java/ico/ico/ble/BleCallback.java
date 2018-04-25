@@ -53,7 +53,7 @@ public class BleCallback {
      * @param failStatus 失败状态码{@link BleSocket#FAIL_STATUS_SERVICES_UNDISCOVER,BleSocket#FAIL_STATUS_UNCONNECT_DISCONNECT}
      */
     public void connectFail(BleSocket bleSocket, int failStatus) {
-        log.w(String.format("%s,连接失败,failStatus：%d", bleSocket.toString(), failStatus), BleSocket.TAG);
+        log.e(String.format("%s,连接失败,failStatus：%d", bleSocket.toString(), failStatus), BleSocket.TAG);
     }
 
     /**
@@ -71,7 +71,7 @@ public class BleCallback {
      * @param bleSocket 蓝牙的连接对象
      */
     public void disconnect(BleSocket bleSocket) {
-        log.w(String.format("%s,连接断开", bleSocket.toString()), BleSocket.TAG);
+        log.e(String.format("%s,连接断开", bleSocket.toString()), BleSocket.TAG);
     }
 
     //BleHelper

@@ -22,7 +22,7 @@ import java.util.UUID;
  * <p>
  * 该类负责与蓝牙设备的连接，并且与蓝牙设备的通信
  * <p>
- * 同时还整合了BleHelper的搜索功能，在发送数据时根据当前状态来执行不同的操作，具体请看{@link BleSocket#send(byte[], String)}
+ * 同时还整合了BleHelper的搜索功能，在发送数据时根据当前状态来执行不同的操作，具体请看{@link BleSocket#send(byte[])} {@link BleSocket#push()}
  * <p>
  * 注意事项：
  * <p>
@@ -58,6 +58,10 @@ public class BleSocket {
      * 发送错误
      */
     public static final int FAIL_STATUS_PATH_NOT_WRITE = 5;
+    /**
+     * 无法识别的设备种类
+     */
+    public static final int FAIL_STATUS_KNOWN_DEVICE = 6;
     /*列举蓝牙操作时各个阶段的状态*/
     /**
      * 蓝牙处于断开状态,这种状态是在连接后再断开的状态
@@ -82,11 +86,20 @@ public class BleSocket {
     /**
      * 当前界面的上下文
      */
-    public Context mContext;
+    protected Context mContext;
+
     /**
-     * 用于读取数据的通道UUID
+     * 设置支持的蓝牙设备种类
+     * <p>
+     * BleSocket将在连接成功后通过搜索通道的方式确定当前连接设备所对应的设备种类
+     * <p>
+     * 并从对应的BLeUUIDI中获取该设备收发数据的通道UUID
      */
-    public String readUUID;
+    protected BLeUUIDI[] mSupportBle;
+    /**
+     * 标识当前设备的种类
+     */
+    protected BLeUUIDI mCurrentBleUUID;
     /**
      * 蓝牙设备对象
      */
@@ -103,10 +116,6 @@ public class BleSocket {
      * 连接状态的对象锁
      */
     protected Object mConnectionStateLock = new Object();
-    /**
-     * 用于搜索的通道ID,根据系统api,加了这个搜索效率比较快
-     */
-    String[] mServicesUUID;
     /**
      * 在蓝牙搜索时,用于筛选的关键字
      */
@@ -132,79 +141,72 @@ public class BleSocket {
     /**
      * 数据缓冲
      */
-    private List<BleInstruct> mDataBuffer = new ArrayList<>();
+    private List<byte[]> mDataBuffer = new ArrayList<>();
     /**
      * 标志该连接是否已设置关闭
      */
     private boolean closed = false;
 
-    public BleSocket(Context context, BleCallback bleCallback) {
+    /**
+     * 蓝牙设备连接使用的回调
+     */
+    private MyBluetoothGattCallback mMyBluetoothGattCallback = new MyBluetoothGattCallback();
+
+
+    /**
+     * 通过给定参数创建蓝牙筛选器
+     *
+     * @param context     上下文
+     * @param bleCallback 蓝牙回调
+     * @param supportBle  支持的设备种类列表,连接成功后将自动进行匹配并使用对应的收发通道UUID
+     */
+    public BleSocket(Context context, BleCallback bleCallback, BLeUUIDI... supportBle) {
         this.mContext = context;
         this.mBleCallback = bleCallback;
         this.mHandler = new Handler(mContext.getMainLooper());
     }
 
-    public BleSocket(Context context, BleCallback bleCallback, BluetoothDevice bluetoothDevice) {
+    /**
+     * 通过给定参数创建蓝牙筛选器
+     *
+     * @param context         上下文
+     * @param bleCallback     蓝牙回调
+     * @param bluetoothDevice 直接给定蓝牙设备对象,进行操作
+     * @param supportBle      支持的设备种类列表,连接成功后将自动进行匹配并使用对应的收发通道UUID
+     */
+    public BleSocket(Context context, BleCallback bleCallback, BluetoothDevice bluetoothDevice, BLeUUIDI... supportBle) {
         this(context, bleCallback);
         this.mBluetoothDevice = bluetoothDevice;
+        this.mSupportBle = supportBle;
     }
 
     /**
      * 通过给定参数创建蓝牙筛选器
-     * <p>
-     * 使用该函数创建的Socket，在发送时会根据当前不同的状态来执行不同的操作，具体请看{@link BleSocket#send(byte[], String)}
      *
-     * @param context
-     * @param bleCallback
+     * @param context     上下文
+     * @param bleCallback 蓝牙回调
      * @param filter      筛选关键字，如果是mac，格式为ABCDEFGHIJKL
      * @param type        筛选类型，0mac，1name
+     * @param supportBle  支持的设备种类列表,连接成功后将自动进行匹配并使用对应的收发通道UUID
      */
-    public BleSocket(Context context, BleCallback bleCallback, String filter, int type) {
+    public BleSocket(Context context, BleCallback bleCallback, String filter, int type, BLeUUIDI... supportBle) {
         this(context, bleCallback);
         setBleFilterCondition(filter, type);
+        this.mSupportBle = supportBle;
     }
 
     /**
      * 通过给定参数创建蓝牙筛选器
-     * <p>
-     * 使用该函数创建的Socket，在发送时会根据当前不同的状态来执行不同的操作，具体请看{@link BleSocket#send(byte[], String)}
      *
-     * @param context
-     * @param bleCallback
-     * @param servicesUUID 筛选具有该UUID的设备
+     * @param context     上下文
+     * @param bleCallback 蓝牙回调
+     * @param bleHelper   蓝牙的帮助工具,一般用于搜索蓝牙和蓝牙开关
+     * @param supportBle  支持的设备种类列表,连接成功后将自动进行匹配并使用对应的收发通道UUID
      */
-    public BleSocket(Context context, BleCallback bleCallback, UUID[] servicesUUID) {
-        this(context, bleCallback);
-        BleHelper bleHelper = new BleHelper(context, servicesUUID, new BleCallback() {
-            @Override
-            public void found(BluetoothDevice device, int rssi) {
-                synchronized (this) {
-                    if (mBluetoothDevice == null) {
-                        //设置蓝牙设备对象
-                        mBluetoothDevice = device;
-                        //停止搜索
-                        mBleHelper.stopScan();
-                        //调用回调
-                        mBleCallback.found(device, rssi);
-                        //连接设备
-                        connect();
-                    }
-                }
-            }
-        });
-        setBleHelper(bleHelper);
-    }
-
-    /**
-     * 同{@link BleSocket#BleSocket(Context, BleCallback, String, int)}
-     *
-     * @param context
-     * @param bleCallback
-     * @param bleHelper
-     */
-    public BleSocket(Context context, BleCallback bleCallback, BleHelper bleHelper) {
+    public BleSocket(Context context, BleCallback bleCallback, BleHelper bleHelper, BLeUUIDI... supportBle) {
         this(context, bleCallback);
         setBleHelper(bleHelper);
+        this.mSupportBle = supportBle;
     }
 
     /**
@@ -215,16 +217,11 @@ public class BleSocket {
             log.w(String.format("%s,设备已连接，连接操作被取消", toString()), TAG);
             return;
         }
-        log.w(String.format("%s,设备开始连接", toString()), TAG);
-//        Observable.just("").subscribeOn(AndroidSchedulers.mainThread()).subscribe(new Action1<String>() {
-//            @Override
-//            public void call(String s) {
         synchronized (mConnectionStateLock) {
             mConnectionState = STATE_CONNECTING;
         }
-        mBluetoothGatt = mBluetoothDevice.connectGatt(mContext, false, new MyBluetoothGattCallback());
-//            }
-//        });
+        log.w(String.format("%s,设备开始连接", toString()), TAG);
+        mBluetoothGatt = mBluetoothDevice.connectGatt(mContext, false, mMyBluetoothGattCallback);
     }
 
     /**
@@ -233,9 +230,6 @@ public class BleSocket {
     public void close() {
         log.e(String.format("%s,close", BleSocket.this.toString()), TAG);
         closed = true;
-//        Observable.just("").subscribeOn(AndroidSchedulers.mainThread()).subscribe(new Action1<String>() {
-//            @Override
-//            public void call(String s) {
         //移除数据缓存区的数据
         mDataBuffer.clear();
         //关闭搜索
@@ -245,16 +239,8 @@ public class BleSocket {
         //关闭连接
         if (mBluetoothGatt != null) {
             mBluetoothGatt.disconnect();
-            mBluetoothGatt.close();
-            mBluetoothGatt = null;
             mBluetoothLeServices = null;
         }
-        //更改连接状态
-        synchronized (mConnectionStateLock) {
-            mConnectionState = STATE_DISCONNECTED;
-        }
-//            }
-//        });
     }
 
 
@@ -262,7 +248,13 @@ public class BleSocket {
      * 不使用该类时请调用该函数销毁
      */
     public void onDestroy() {
-        close();
+        if (!isClosed()) {
+            close();
+        }
+        if (mBluetoothGatt != null) {
+            mBluetoothGatt.close();
+            mBluetoothGatt = null;
+        }
         if (mBleHelper != null) {
             mBleHelper.onDestroy();
         }
@@ -285,7 +277,11 @@ public class BleSocket {
             mConnectionState = STATE_UNKNOWN;
         }
         mBluetoothDevice = null;
-        mBluetoothGatt = null;
+        mCurrentBleUUID = null;
+        if (mBluetoothGatt != null) {
+            mBluetoothGatt.close();
+            mBluetoothGatt = null;
+        }
         mBluetoothLeServices = null;
         closed = false;
     }
@@ -312,12 +308,11 @@ public class BleSocket {
      * <p>
      * 有蓝牙设备对象-已连接-通道找到-发送
      *
-     * @param _sendInstruct 发送的数据
-     * @param uuid          数据发送的通道ID
+     * @param _data 发送的数据
      * @return
      */
-    public boolean send(byte[] _sendInstruct, String uuid) {
-        mDataBuffer.add(new BleInstruct(_sendInstruct, uuid));
+    public boolean send(byte[] _data) {
+        mDataBuffer.add(_data);
         return push();
     }
 
@@ -336,7 +331,7 @@ public class BleSocket {
      *
      * @return
      */
-    public boolean push() {
+    public synchronized boolean push() {
         if (mDataBuffer.size() == 0) {
             return true;
         }
@@ -344,36 +339,15 @@ public class BleSocket {
         if (mBluetoothDevice == null) {
             if (mBleHelper != null) {
                 mBleHelper.startScan();
-                //TODO
-//                log.w("===" + BleHelper.getBleAdapter(mContext).getBondedDevices().toString());
-//                log.w("===" + Common.insert(mKeywordFilter, ":", 2));
-//                if (mType == 0 && !TextUtils.isEmpty(mKeywordFilter)) {
-//                    String mac = Common.insert(mKeywordFilter, ":", 2);
-//                    if (BleHelper.getBleAdapter(mContext).checkBluetoothAddress(mac)) {
-//                        BluetoothDevice bluetoothDevice = BleHelper.getBleAdapter(mContext).getRemoteDevice(mac);
-//                        if (bluetoothDevice != null) {
-//                            log.w(String.format("已知%s,通过getRemoteDevice已成功创建设备对象", mac), TAG);
-//                            //设置蓝牙设备对象
-//                            mBluetoothDevice = bluetoothDevice;
-//                            //连接设备
-//                            connect();
-//                        } else {
-//                            mBleHelper.startScan();
-//                        }
-//                    } else {
-//                        mBleHelper.startScan();
-//                    }
-//                } else {
-//                    mBleHelper.startScan();
-//                }
             } else {
                 log.e("无设备对象，或请设置BleHelper来帮助自动化", TAG);
             }
         } else if (getConnectionState() == STATE_UNKNOWN) {
+            mBluetoothDevice = BleHelper.getBleAdapter(mContext).getRemoteDevice(mBluetoothDevice.getAddress());
             connect();
         } else {
-            String uuid = mDataBuffer.get(0).getUuid();
-            byte[] data = mDataBuffer.get(0).getInstruct();
+            String uuid = mCurrentBleUUID.getWriteUUID();
+            byte[] data = mDataBuffer.get(0);
             mDataBuffer.remove(0);
             //找到要发送的通道
             BluetoothGattCharacteristic characteristic = find(uuid);
@@ -386,7 +360,7 @@ public class BleSocket {
                 return false;
             }
             characteristic.setValue(data);
-            log.w(String.format("%s,发送数据：%s；通道：%s", this.toString(), Common.bytes2Int16(" ", data), uuid), TAG);
+            log.w(String.format("%s,发送数据：%s；UUID:%s", this.toString(), Common.bytes2Int16(" ", data), uuid), TAG);
             boolean success = mBluetoothGatt.writeCharacteristic(characteristic);
             if (!success) {
                 mBleCallback.sendFail(this, data, FAIL_STATUS_NONE);
@@ -424,44 +398,6 @@ public class BleSocket {
      */
     public boolean canNotify(BluetoothGattCharacteristic characteristic) {
         return (characteristic.getProperties() & characteristic.PROPERTY_NOTIFY) != 0;
-    }
-
-    /**
-     * 设置要读取数据的通道的UUID
-     *
-     * @param readUUID 通道的id
-     */
-    public void setReadUUID(String readUUID) {
-        this.readUUID = readUUID;
-    }
-
-    public BleSocket setServicesUUID(String... servicesUUID) {
-        this.mServicesUUID = servicesUUID;
-        if (mBleHelper != null) {
-            mBleHelper.setServicesUUID(servicesUUID);
-        }
-        return this;
-    }
-
-    /**
-     * 获取该socket对应的蓝牙操作对象
-     *
-     * @return
-     */
-    public BleHelper getBleHelper() {
-        return mBleHelper;
-    }
-
-    /**
-     * 设置该socket的蓝牙操作对象
-     *
-     * @param bleHelper
-     */
-    public void setBleHelper(BleHelper bleHelper) {
-        this.mBleHelper = bleHelper;
-        if (mBleHelper != null && mServicesUUID != null) {
-            mBleHelper.setServicesUUID(mServicesUUID);
-        }
     }
 
     /**
@@ -512,29 +448,14 @@ public class BleSocket {
     }
 
     /**
-     * 设置蓝牙操作的回调对象
-     *
-     * @param bleCallback
+     * 设置通道通知
+     * <p>
+     * 连接成功后,确定设备种类后,设置设备的通知通道
      */
-    public void setBleCallback(BleCallback bleCallback) {
-        this.mBleCallback = bleCallback;
-    }
-
-    /**
-     * 设置通道通知,调用该函数前需先调用{@link this#setReadUUID(String)}设置通道的id
-     */
-    public void setReadCharacteristicNotification() {
-        if (TextUtils.isEmpty(readUUID)) {
-            log.e("没有设置readUUID，请先设置readUUID", TAG);
-            return;
-        }
-        BluetoothGattCharacteristic characteristic = find(readUUID);
-        if (characteristic == null) {
-            log.e("没有找到readUUID对应的通道，UUID：" + readUUID, TAG);
-            return;
-        }
+    private void setReadCharacteristicNotification() {
+        BluetoothGattCharacteristic characteristic = find(mCurrentBleUUID.getReadUUID());
         if (!canNotify(characteristic)) {
-            log.e("通道没有通知的特性，UUID：" + readUUID, TAG);
+            log.e("通道没有通知的特性，UUID：" + mCurrentBleUUID.getReadUUID(), TAG);
             return;
         }
         if (mBluetoothGatt == null) {
@@ -545,9 +466,10 @@ public class BleSocket {
             log.w(String.format("设置通道通知%s，UUID：" + characteristic.getUuid(), isEnableNotification ? "成功" : "失败"), TAG);
             //TODO ble和dm的uuid相同,write后需要延迟
             if (isEnableNotification) {
-                BluetoothGattDescriptor descriptor = characteristic.getDescriptor(UUID.fromString("00002902-0000-1000-8000-00805f9b34fb"));
+                BluetoothGattDescriptor descriptor = characteristic.getDescriptor(UUID.fromString(mCurrentBleUUID.getEnableNotificationUUID()));
                 descriptor.setValue(BluetoothGattDescriptor.ENABLE_NOTIFICATION_VALUE);
                 mBluetoothGatt.writeDescriptor(descriptor);
+                log.w("启用通道通知成功，UUID：" + descriptor.getUuid(), TAG);
             }
         }
     }
@@ -559,7 +481,6 @@ public class BleSocket {
      * @return
      */
     public BluetoothGattCharacteristic find(String uuid) {
-        log.d("BleSocket find");
         if (mBluetoothGatt != null) {
             BluetoothGattCharacteristic characteristic = null;
             for (BluetoothGattService service : mBluetoothLeServices) {
@@ -576,20 +497,50 @@ public class BleSocket {
         return null;
     }
 
+    //region GET/SET/toString
+
     /**
-     * 将该socket的信息拼接成字符串返回,设备名+设备mac地址
+     * 获取该socket对应的蓝牙操作对象
      *
      * @return
      */
-    @Override
-    public String toString() {
-        if (mBluetoothDevice != null) {
-            return "name:" + mBluetoothDevice.getName() + ",mac:" + mBluetoothDevice.toString();
-        } else if (!TextUtils.isEmpty(mKeywordFilter)) {
-            return "mKeywordFilter:" + mKeywordFilter;
-        } else {
-            return null;
-        }
+    public BleHelper getBleHelper() {
+        return mBleHelper;
+    }
+
+    /**
+     * 设置该socket的蓝牙操作对象
+     *
+     * @param bleHelper
+     */
+    public void setBleHelper(BleHelper bleHelper) {
+        this.mBleHelper = bleHelper;
+    }
+
+    /**
+     * 设置蓝牙操作的回调对象
+     *
+     * @param bleCallback
+     */
+    public void setBleCallback(BleCallback bleCallback) {
+        this.mBleCallback = bleCallback;
+    }
+
+
+    public BLeUUIDI[] getSupportBle() {
+        return mSupportBle;
+    }
+
+    public void setSupportBle(BLeUUIDI... supportBle) {
+        this.mSupportBle = supportBle;
+    }
+
+    public BLeUUIDI getCurrentBleUUID() {
+        return mCurrentBleUUID;
+    }
+
+    public void setCurrentBleUUID(BLeUUIDI currentBleUUID) {
+        this.mCurrentBleUUID = currentBleUUID;
     }
 
     /**
@@ -611,6 +562,23 @@ public class BleSocket {
     }
 
     /**
+     * 将该socket的信息拼接成字符串返回,设备名+设备mac地址
+     *
+     * @return
+     */
+    @Override
+    public String toString() {
+        if (mBluetoothDevice != null) {
+            return "name:" + mBluetoothDevice.getName() + ",mac:" + mBluetoothDevice.toString();
+        } else if (!TextUtils.isEmpty(mKeywordFilter)) {
+            return "mKeywordFilter:" + mKeywordFilter;
+        } else {
+            return null;
+        }
+    }
+    //endregion
+
+    /**
      * 停止蓝牙搜索
      */
     public void stopScan() {
@@ -618,6 +586,17 @@ public class BleSocket {
             mBleHelper.stopScan();
             mBleHelper = null;
         }
+    }
+
+    /**
+     * 不同的蓝牙设备,有不同的uuid,根据UUID来确定是哪种设备,然后设置收发通道
+     */
+    public interface BLeUUIDI {
+        public String getEnableNotificationUUID();
+
+        public String getWriteUUID();
+
+        public String getReadUUID();
     }
 
     class MyBluetoothGattCallback extends BluetoothGattCallback {
@@ -655,6 +634,22 @@ public class BleSocket {
                 synchronized (mConnectionStateLock) {
                     mConnectionState = STATE_CONNECTED_DISCOVER;
                 }
+                //确定当前连接的蓝牙设备属于给定的设备类别表中的哪一种
+                if (mSupportBle == null || mSupportBle.length == 0) {
+                    mBleCallback.connectFail(BleSocket.this, FAIL_STATUS_KNOWN_DEVICE);
+                    return;
+                }
+                for (int i = 0; i < mSupportBle.length; i++) {
+                    BluetoothGattCharacteristic chars = find(mSupportBle[i].getReadUUID());
+                    if (chars != null) {
+                        mCurrentBleUUID = mSupportBle[i];
+                        break;
+                    }
+                }
+                if (mCurrentBleUUID == null) {
+                    mBleCallback.connectFail(BleSocket.this, FAIL_STATUS_KNOWN_DEVICE);
+                    return;
+                }
                 setReadCharacteristicNotification();
                 //这是使用延迟,是由于setReadCharacteristicNotification后不能立即发送数据,立即发送会直接返回false
                 mHandler.postDelayed(new Runnable() {
@@ -673,59 +668,31 @@ public class BleSocket {
         public void onConnectionStateChange(BluetoothGatt gatt, int status, int newState) {
             super.onConnectionStateChange(gatt, status, newState);
             log.i(String.format("onConnectionStateChange: mConnectionState：%d；newState：%d；" + mBluetoothGatt, mConnectionState, newState));
-            if (mBluetoothGatt == null) {
-                return;
-            }
             if (getConnectionState() == BluetoothAdapter.STATE_CONNECTING
                     && newState == BluetoothAdapter.STATE_CONNECTED) {
+                //更改连接状态
                 synchronized (mConnectionStateLock) {
                     mConnectionState = STATE_CONNECTED;
                 }
                 mBluetoothGatt.discoverServices();
             }
             if (newState == BluetoothAdapter.STATE_DISCONNECTED) {//连接断开
-                if (getConnectionState() == STATE_CONNECTED || getConnectionState() == STATE_CONNECTED_DISCOVER) {//设备已连接上
-                    close();
-                    mBleCallback.disconnect(BleSocket.this);
-                } else if (getConnectionState() == STATE_CONNECTING) {//设备没有连接上，直接断开
-                    close();
-                    mBleCallback.connectFail(BleSocket.this, FAIL_STATUS_UNCONNECT_DISCONNECT);
+                switch (getConnectionState()) {
+                    case STATE_CONNECTED://设备已连接上
+                    case STATE_CONNECTED_DISCOVER:
+                        if (!isClosed()) close();
+                        mBleCallback.disconnect(BleSocket.this);
+                        break;
+                    case STATE_CONNECTING://设备没有连接上，直接断开
+                        if (!isClosed()) close();
+                        mBleCallback.connectFail(BleSocket.this, FAIL_STATUS_UNCONNECT_DISCONNECT);
+                        break;
+                }
+                //更改连接状态
+                synchronized (mConnectionStateLock) {
+                    mConnectionState = STATE_DISCONNECTED;
                 }
             }
-        }
-    }
-
-    /**
-     * 封装的指令对象,封装了数据和对应的数据通道
-     */
-    public class BleInstruct {
-        //要发送的指令
-        byte[] instruct;
-        //发送使用的通道
-        String uuid;
-
-        public BleInstruct() {
-        }
-
-        public BleInstruct(byte[] instruct, String uuid) {
-            this.instruct = instruct;
-            this.uuid = uuid;
-        }
-
-        public byte[] getInstruct() {
-            return instruct;
-        }
-
-        public void setInstruct(byte[] instruct) {
-            this.instruct = instruct;
-        }
-
-        public String getUuid() {
-            return uuid;
-        }
-
-        public void setUuid(String uuid) {
-            this.uuid = uuid;
         }
     }
 }

@@ -7,6 +7,7 @@ package ico.ico.ble.demo.blemgr;
 import java.util.concurrent.TimeUnit;
 
 import ico.ico.ble.BleSocket;
+import ico.ico.ble.demo.uuid.BleUUID;
 import rx.Observable;
 import rx.Subscription;
 import rx.android.schedulers.AndroidSchedulers;
@@ -24,6 +25,9 @@ public class BleZmyMgr {
     //蓝牙连接
     private BleSocket mBleSocket;
 
+    /**
+     * 电量
+     */
     private int power;
 
     public BleZmyMgr() {
@@ -35,6 +39,7 @@ public class BleZmyMgr {
 
     /**
      * view层接收到数据回调,调用这个函数去分析收到的数据,对数据进行校验和处理,然后返回这条指令的动作标识
+     * TODO 根据实际的项目协议进行改写
      *
      * @param data 接收到的数据
      * @return
@@ -64,13 +69,13 @@ public class BleZmyMgr {
 
     //region Control
     public synchronized void open(Action1 action1) {
-        mBleSocket.send(Command.getCommonI(Command.CMD_OPEN), Command.UUID_WRITE);
+        mBleSocket.send(Command.getCommonI(Command.CMD_OPEN));
         Subscription sub = Observable.just("").subscribeOn(AndroidSchedulers.mainThread()).delay(TIMESOUT, TimeUnit.MILLISECONDS).subscribe(action1);
         currentOperationFlag.saveOpering(Command.CMD_OPEN, sub);
     }
 
     public synchronized void queryPower(Action1 action1) {
-        mBleSocket.send(Command.getCommonI(Command.CMD_QUERY_POWER), Command.UUID_WRITE);
+        mBleSocket.send(Command.getCommonI(Command.CMD_QUERY_POWER));
         Subscription sub = Observable.just("").subscribeOn(AndroidSchedulers.mainThread()).delay(TIMESOUT, TimeUnit.MILLISECONDS).subscribe(action1);
         currentOperationFlag.saveOpering(Command.CMD_QUERY_POWER, sub);
     }
@@ -83,7 +88,7 @@ public class BleZmyMgr {
 
     public void setBleSocket(BleSocket bleSocket) {
         this.mBleSocket = bleSocket;
-        this.mBleSocket.setReadUUID(Command.UUID_READ);
+        this.mBleSocket.setSupportBle(BleUUID.getInstance());
     }
 
     public int getPower() {
@@ -101,12 +106,11 @@ public class BleZmyMgr {
 
     /**
      * 关于指令命令的封装
+     * TODO 根据实际的项目协议进行改写
      */
     public static class Command {
-        public static final String UUID_WRITE = "BB8A27E0-C37C-11E3-B953-0228AC012A70";
-        public static final String UUID_READ = "B34AE89E-C37C-11E3-940E-0228AC012A70";
         public static final byte CMD_OPEN = 0x01;//开门
-        public static final byte CMD_QUERY_POWER = 0x02;//电量
+        public static final byte CMD_QUERY_POWER = 0x02;//查询电量
 
         //我随便写的协议,根据实际的情况改写,一般来说手机-设备和设备-手机的协议格式都是相同的
         public static byte[] getCommonI(byte cmd) {
