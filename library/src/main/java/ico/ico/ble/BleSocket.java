@@ -225,7 +225,7 @@ public class BleSocket {
     }
 
     /**
-     * 关闭socket,关闭后该socket不可用,必须使用{@link this#reset()}函数来恢复到初始状态
+     * 关闭socket,关闭后该socket不可用,必须使用{@link #reset()}函数来恢复到初始状态
      */
     public void close() {
         log.e(String.format("%s,close", BleSocket.this.toString()), TAG);
@@ -432,7 +432,7 @@ public class BleSocket {
         mBleHelper.setBleFilter(new BleHelper.BleFilter() {
             @Override
             public boolean onBleFilter(BluetoothDevice device) {
-                switch (type) {
+                switch (mType) {
                     case 0:
                         return device.getAddress().replace(":", "").equalsIgnoreCase(mKeywordFilter);
                     case 1:

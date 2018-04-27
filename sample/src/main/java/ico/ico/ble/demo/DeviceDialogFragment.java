@@ -37,7 +37,7 @@ public class DeviceDialogFragment extends BaseDialogFrag {
 
     /**
      * @param device 需要修改的设备对象,如果意图设备添加,请想要添加的设备类型Type的设备对象
-     * @return
+     * @return {@link DeviceDialogFragment}
      */
     public static DeviceDialogFragment newInstance(Device device, String reg) {
         if (device == null) {

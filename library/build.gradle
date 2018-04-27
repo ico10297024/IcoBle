@@ -1,5 +1,4 @@
 apply plugin: 'com.android.library'
-
 android {
     compileSdkVersion COMPILE_SDK_VERSION as int
     buildToolsVersion BUILD_TOOLS_VERSION
@@ -11,9 +10,10 @@ android {
         targetSdkVersion 18
         versionCode 1
         versionName "1.0.0"
-
         testInstrumentationRunner "android.support.test.runner.AndroidJUnitRunner"
-
+    }
+    lintOptions {
+        abortOnError false
     }
 
     buildTypes {
@@ -24,8 +24,8 @@ android {
     }
 
     compileOptions {
-        sourceCompatibility JavaVersion.VERSION_1_8
-        targetCompatibility JavaVersion.VERSION_1_8
+        sourceCompatibility JavaVersion.VERSION_1_7
+        targetCompatibility JavaVersion.VERSION_1_7
     }
 }
 
@@ -35,4 +35,35 @@ dependencies {
     androidTestImplementation 'com.android.support.test:runner:1.0.1'
     androidTestImplementation 'com.android.support.test.espresso:espresso-core:3.0.1'
     api 'com.android.support:support-annotations:+'
+}
+// Required because retrolambda is on maven central
+repositories {
+    mavenCentral()
+    google()
+}
+/*jcenter*/
+allprojects {
+    tasks.withType(Javadoc) {
+        options.addStringOption('Xdoclint:none', '-quiet')
+        options.addStringOption('encoding', 'UTF-8')
+    }
+}
+apply plugin: 'com.novoda.bintray-release'
+publish {//lucifer add
+    artifactId = 'IcoBle'
+//    userOrg = 'ico'
+//    groupId = 'ico.ico.ble'
+//    uploadName = 'IcoBle'
+//    publishVersion = '1.0.0'
+    desc = 'https://github.com/ico10297024/IcoBle'
+//    website = rootProject.website
+//    licences = rootProject.licences
+
+    userOrg = rootProject.userOrg
+    groupId = rootProject.groupId
+    uploadName = rootProject.uploadName
+    publishVersion = rootProject.publishVersion
+//    desc = rootProject.description
+    website = rootProject.website
+    licences = rootProject.licences
 }

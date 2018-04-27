@@ -19,9 +19,7 @@ public class Common {
     /**
      * 获取设备的mac地址
      * <p>
-     * 由于安卓手机的不确定性,在application初始化时获取了本地的mac地址并进行了保存,后续的使用直接调用{@link ico.ico.ico.BaseApplication#localMac}
-     * <p>
-     * 推荐使用{@link #getUniqueId(Context)}获取手机唯一标识码
+     * 由于安卓手机的不确定性,在application初始化时获取了本地的mac地址并进行了保存,后续的使用直接调用{@link android.app.Application}
      *
      * @param callback 成功获取到mac地址之后会回调此方法
      */
@@ -97,8 +95,8 @@ public class Common {
     /**
      * 将16进制字符串转换为byte
      *
-     * @param hexStr
-     * @return
+     * @param hexStr 16进制的字符串
+     * @return byte
      */
     public static byte hexstr2Byte(String hexStr) {
         char[] chars = hexStr.toUpperCase().toCharArray();
@@ -123,7 +121,7 @@ public class Common {
      *
      * @param mac 会对格式进行检查
      *            如果只有一位,左边加0,变两位,如 A->0A
-     * @return
+     * @return byte[]
      */
     public static byte[] hexstr2Bytes(String mac, String joinStr) throws IllegalArgumentException {
         mac = mac.toUpperCase();
@@ -152,7 +150,7 @@ public class Common {
      * @param s        原字符串
      * @param iStr     要插入的字符串
      * @param interval 间隔时间
-     * @return
+     * @return String
      */
     public static String insert(String s, String iStr, int interval) {
         StringBuffer s1 = new StringBuffer(s);

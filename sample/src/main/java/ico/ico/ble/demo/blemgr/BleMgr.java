@@ -41,13 +41,13 @@ public class BleMgr {
         setBleSocket(bleSocket);
     }
 
-    /**
-     * view层接收到数据回调,调用这个函数去分析收到的数据,对数据进行校验和处理,然后返回这条指令的动作标识
-     * TODO 根据实际的项目协议进行改写
-     *
-     * @param data 接收到的数据
-     * @return
-     */
+    //    /**
+//     * view层接收到数据回调,调用这个函数去分析收到的数据,对数据进行校验和处理,然后返回这条指令的动作标识
+//     * TODO 根据实际的项目协议进行改写
+//     *
+//     * @param data 接收到的数据
+//     * @return
+//     */
 //    public byte analyze(byte[] data) {
 //        if (data.length < 14) {
 //            return -1;
@@ -173,7 +173,8 @@ public class BleMgr {
         /**
          * 获取通用协议,适用大部分动作
          *
-         * @return cmd 协议中代表动作的字节,{@link #CMD_OPEN}等
+         * @param cmd 协议中代表动作的字节,{@link #CMD_OPEN}等
+         * @return byte[]
          */
         public static byte[] getCommonI(byte cmd) {
             byte[] data = new byte[19];

@@ -110,7 +110,7 @@ public class BleHelper {
      * 获取蓝牙的开启状态
      *
      * @param context 当前上下文
-     * @return
+     * @return boolean
      */
     public static boolean isEnable(Context context) {
         return BleHelper.getBleAdapter(context).isEnabled();

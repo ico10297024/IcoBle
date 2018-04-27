@@ -114,7 +114,7 @@ public abstract class BaseDialogFrag extends DialogFragment {
      * 若改标记为true，则该碎片所表示的视图在onDestoryView函数中不会被销毁，在下一次onCreateView中可以复用
      * 默认为true
      *
-     * @return
+     * @return boolean boolean
      */
     public boolean isSaveStateFlag() {
         return saveStateFlag;
@@ -134,8 +134,8 @@ public abstract class BaseDialogFrag extends DialogFragment {
     /**
      * 在contentView视图中，根据ID获取组件
      *
-     * @param id
-     * @return
+     * @param id 唯一标识
+     * @return View
      */
     public View findViewById(int id) {
         if (mContentView != null) {

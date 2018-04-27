@@ -24,7 +24,7 @@ public class CurrentOperationFlag {
     /**
      * 检查当前有操作在进行
      *
-     * @return
+     * @return boolean
      */
     public boolean isOpering() {
 
@@ -34,7 +34,7 @@ public class CurrentOperationFlag {
     /**
      * 检查指定操作当前是否在执行
      *
-     * @return
+     * @return boolean
      */
     public boolean isOpering(byte cmd) {
         return currOper.contains(cmd);
