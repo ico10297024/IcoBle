@@ -4,10 +4,6 @@ import android.bluetooth.BluetoothDevice;
 
 /**
  * 使用于BleHelper和BleSocket的回调函数
- * <p>
- * BleHelper：{@link BleCallback#found(BluetoothDevice, int)}
- * <p>
- * BleSocket：{@link BleCallback#receive(BleSocket, String, byte[]),BleCallback#sendSuccess(BleSocket, byte[]),BleCallback#sendFail(BleSocket, byte[], String),BleCallback#connectSuccess(BleSocket),BleCallback#connectFail(BleSocket),BleCallback#disconnect(BleSocket)}
  */
 public class BleCallback {
 
@@ -39,7 +35,9 @@ public class BleCallback {
      *
      * @param bleSocket  蓝牙的连接对象
      * @param instruct   数据
-     * @param failStatus 失败状态码{@link BleSocket#FAIL_STATUS_NONE,BleSocket#FAIL_STATUS_PATH_NOT_FOUND,BleSocket#FAIL_STATUS_PATH_NOT_WRITE}
+     * @param failStatus 失败状态码{@link BleSocket#FAIL_STATUS_NONE}
+     *                   {@link BleSocket#FAIL_STATUS_PATH_NOT_FOUND}
+     *                   {@link BleSocket#FAIL_STATUS_PATH_NOT_WRITE}
      */
     public void sendFail(BleSocket bleSocket, byte[] instruct, int failStatus) {
         log.w(String.format("%s,发送数据失败,错误状态码：%d,数据：%s", bleSocket.toString(), failStatus, Common.bytes2Int16(" ", instruct)), BleSocket.TAG);
@@ -50,7 +48,9 @@ public class BleCallback {
      * 当蓝牙连接失败时进行回调
      *
      * @param bleSocket  蓝牙的连接对象
-     * @param failStatus 失败状态码{@link BleSocket#FAIL_STATUS_SERVICES_UNDISCOVER,BleSocket#FAIL_STATUS_UNCONNECT_DISCONNECT}
+     * @param failStatus 失败状态码{@link BleSocket#FAIL_STATUS_SERVICES_UNDISCOVER}
+     *                   {@link BleSocket#FAIL_STATUS_UNCONNECT_DISCONNECT}
+     *                   {@link BleSocket#FAIL_STATUS_KNOWN_DEVICE}
      */
     public void connectFail(BleSocket bleSocket, int failStatus) {
         log.e(String.format("%s,连接失败,failStatus：%d", bleSocket.toString(), failStatus), BleSocket.TAG);

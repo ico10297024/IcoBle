@@ -1,6 +1,7 @@
 package ico.ico.ble.demo;
 
 import android.content.Context;
+import android.support.multidex.MultiDex;
 
 import ico.ico.ble.demo.base.BaseApplication;
 import ico.ico.ble.demo.db.DaoMaster;
@@ -21,6 +22,7 @@ public class MyApplication extends BaseApplication {
     @Override
     protected void attachBaseContext(Context base) {
         super.attachBaseContext(base);
+        MultiDex.install(this);
     }
 
     @Override

@@ -91,8 +91,8 @@ public class BleHelper {
     /**
      * 获取默认的蓝牙适配器
      *
-     * @param context
-     * @return
+     * @param context 当前上下文
+     * @return BluetoothAdapter
      */
     public static BluetoothAdapter getBleAdapter(Context context) {
         if (mBleAdapter == null) {
@@ -109,6 +109,7 @@ public class BleHelper {
     /**
      * 获取蓝牙的开启状态
      *
+     * @param context 当前上下文
      * @return
      */
     public static boolean isEnable(Context context) {
@@ -117,6 +118,8 @@ public class BleHelper {
 
     /**
      * 启动蓝牙
+     *
+     * @param context 当前上下文
      */
     public static void enable(Context context) {
         Intent enableBtIntent = new Intent(BluetoothAdapter.ACTION_REQUEST_ENABLE);
@@ -125,6 +128,8 @@ public class BleHelper {
 
     /**
      * 关闭蓝牙
+     *
+     * @param context 当前上下文
      */
     public static void disable(Context context) {
         BleHelper.getBleAdapter(context).disable();
@@ -132,7 +137,7 @@ public class BleHelper {
     //endregion
 
     /**
-     * 不使用该类时请调用该函数销毁
+     * 销毁
      */
     public void onDestroy() {
         mContext.unregisterReceiver(foundReceiver);

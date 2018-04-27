@@ -7,7 +7,7 @@ package ico.ico.ble.demo.blemgr;
 import java.util.concurrent.TimeUnit;
 
 import ico.ico.ble.BleSocket;
-import ico.ico.ble.demo.uuid.BleUUID;
+import ico.ico.ble.demo.uuid.DmMoudleUUID;
 import rx.Observable;
 import rx.Subscription;
 import rx.android.schedulers.AndroidSchedulers;
@@ -21,13 +21,13 @@ public class BleMgr {
     //当前操作标识
     CurrentOperationFlag currentOperationFlag = new CurrentOperationFlag();
     //超时时间
-    private long TIMESOUT = 15 * 1000L;
+    private long TIMESOUT = 5 * 1000L;
     //蓝牙连接
     private BleSocket mBleSocket;
     /**
      * TODO 支持的设备列表,通过{@link BleSocket#setSupportBle(BleSocket.BLeUUIDI...)}设置可支持的设备列表,在BleSocket成功连接上蓝牙设备后会自动匹配列表,匹配成功后将使用对应设备的UUID进行收发数据
      */
-    private BleUUID[] mSupportBle = new BleUUID[]{BleUUID.getInstance()};
+    private BleSocket.BLeUUIDI[] mSupportBle = new BleSocket.BLeUUIDI[]{DmMoudleUUID.getInstance()};
 
     /**
      * 电量
@@ -48,27 +48,64 @@ public class BleMgr {
      * @param data 接收到的数据
      * @return
      */
-    public byte analyze(byte[] data) {
-        if (data.length < 14) {
+//    public byte analyze(byte[] data) {
+//        if (data.length < 14) {
+//            return -1;
+//        }
+//        if ((data[0] & 0xff) == 0xf5 &&
+//                (data[1] & 0xff) == 0xf5 &&
+//                (data[4] & 0xff) == 0x0d &&
+//                (data[5] & 0xff) == 0x0a
+//                ) {
+//            currentOperationFlag.finishOper(data[2]);
+//            switch (data[2]) {
+//                case Command.CMD_OPEN:
+//                    break;
+//                case Command.CMD_QUERY_POWER:
+//                    power = data[3];
+//                    break;
+//            }
+//            return data[2];
+//        } else {
+//            return -1;
+//        }
+//    }
+    public byte analyze(byte[] buffer) {
+        if (buffer.length < 19) {
             return -1;
         }
-        if ((data[0] & 0xff) == 0xf5 &&
-                (data[1] & 0xff) == 0xf5 &&
-                (data[4] & 0xff) == 0x0d &&
-                (data[5] & 0xff) == 0x0a
+        if ((buffer[0] & 0xff) == 0xf5
+                && (buffer[1] & 0xff) == 0xf5
+                && (buffer[17] & 0xff) == 0x0d
+                && (buffer[18] & 0xff) == 0x0a
                 ) {
-            currentOperationFlag.finishOper(data[2]);
-            switch (data[2]) {
+            currentOperationFlag.finishOper(buffer[3]);
+            switch (buffer[3]) {
                 case Command.CMD_OPEN:
                     break;
-                case Command.CMD_QUERY_POWER:
-                    power = data[3];
-                    break;
             }
-            return data[2];
+            return buffer[3];
         } else {
             return -1;
         }
+
+//        if (buffer.length < 7) {
+//            return -1;
+//        }
+//        if ((buffer[0] & 0xff) == 0xf5
+//                && (buffer[1] & 0xff) == 0xf5
+//                && (buffer[5] & 0xff) == 0x0d
+//                && (buffer[6] & 0xff) == 0x0a
+//                ) {
+//            switch (buffer[3]) {
+//                case CMD_OPEN:
+//                    setOpening(false);
+//                    break;
+//            }
+//            return buffer[3];
+//        } else {
+//            return -1;
+//        }
     }
 
     //region Control
@@ -117,18 +154,61 @@ public class BleMgr {
         public static final byte CMD_QUERY_POWER = 0x02;//查询电量
 
         //我随便写的协议,根据实际的情况改写,一般来说手机-设备和设备-手机的协议格式都是相同的
+//        public static byte[] getCommonI(byte cmd) {
+//            byte[] data = new byte[14];
+//            //起始 唯一码
+//            data[0] = (byte) 0xF5;
+//            data[1] = (byte) 0xF5;
+//            //动作
+//            data[2] = cmd;
+//            //预留位,在获取电量的情况下使用
+//            data[3] = 0x00;
+//            //结尾 唯一码
+//            data[4] = 0x0D;
+//            data[5] = 0x0A;
+//            return data;
+//        }
+
+
+        /**
+         * 获取通用协议,适用大部分动作
+         *
+         * @return cmd 协议中代表动作的字节,{@link #CMD_OPEN}等
+         */
         public static byte[] getCommonI(byte cmd) {
-            byte[] data = new byte[14];
-            //起始 唯一码
-            data[0] = (byte) 0xF5;
-            data[1] = (byte) 0xF5;
-            //动作
-            data[2] = cmd;
-            //预留位,在获取电量的情况下使用
-            data[3] = 0x00;
-            //结尾 唯一码
-            data[4] = 0x0D;
-            data[5] = 0x0A;
+            byte[] data = new byte[19];
+            //校验位
+            data[0] = (byte) 0xf5;
+            data[1] = (byte) 0xf5;
+            //类型
+            data[2] = (byte) 1;
+            //操作类型 1开门， 2复位， 3开授权， 4关授权， 5查询列表， 6删除指定权限， 7删除全部权限 8 授权主动返回
+            data[3] = cmd;
+            //第一张卡
+            data[4] = 0x00;
+            data[5] = 0x00;
+            data[6] = 0x00;
+            data[7] = 0x00;
+            //第二张卡
+            data[8] = 0x00;
+            data[9] = 0x00;
+            data[10] = 0x00;
+            data[11] = 0x00;
+            //第三张卡
+            data[12] = 0x00;
+            data[13] = 0x00;
+            data[14] = 0x00;
+            data[15] = 0x00;
+            //异或结果
+            int b = data[0];
+            for (int i = 0; i < 15; i++) {
+                b = b ^ data[i + 1];
+            }
+            data[16] = (byte) b;
+            //校验位
+            data[17] = 0x0D;
+            data[18] = 0x0A;
+
             return data;
         }
     }

@@ -262,7 +262,7 @@ public class BleSocket {
     /**
      * 获取当前socket的关闭状态
      *
-     * @return
+     * @return boolean
      */
     public boolean isClosed() {
         return closed;
@@ -288,7 +288,7 @@ public class BleSocket {
     /**
      * 获取当前socket的连接状态
      *
-     * @return
+     * @return int
      */
     public int getConnectionState() {
         return mConnectionState;
@@ -308,7 +308,7 @@ public class BleSocket {
      * 有蓝牙设备对象-已连接-通道找到-发送
      *
      * @param _data 发送的数据
-     * @return
+     * @return boolean
      */
     public boolean send(byte[] _data) {
         mDataBuffer.add(_data);
@@ -328,7 +328,7 @@ public class BleSocket {
      * <p>
      * 有蓝牙设备对象-已连接-通道找到-发送
      *
-     * @return
+     * @return boolean
      */
     public synchronized boolean push() {
         if (mDataBuffer.size() == 0) {
@@ -373,7 +373,7 @@ public class BleSocket {
      * 判断传入的通道是否具有读取特性
      *
      * @param characteristic 服务通道对象
-     * @return
+     * @return boolean
      */
     public boolean canRead(BluetoothGattCharacteristic characteristic) {
         return (characteristic.getProperties() & characteristic.PROPERTY_READ) != 0;
@@ -383,7 +383,7 @@ public class BleSocket {
      * 判断传入的通道是否具有写入特性
      *
      * @param characteristic 服务通道对象
-     * @return
+     * @return boolean
      */
     public boolean canWrite(BluetoothGattCharacteristic characteristic) {
         return (characteristic.getProperties() & (BluetoothGattCharacteristic.PROPERTY_WRITE | BluetoothGattCharacteristic.PROPERTY_WRITE_NO_RESPONSE)) != 0;
@@ -393,7 +393,7 @@ public class BleSocket {
      * 判断传入的通道是否具有通知的特性
      *
      * @param characteristic 服务通道对象
-     * @return
+     * @return boolean
      */
     public boolean canNotify(BluetoothGattCharacteristic characteristic) {
         return (characteristic.getProperties() & characteristic.PROPERTY_NOTIFY) != 0;
@@ -476,8 +476,8 @@ public class BleSocket {
     /**
      * 根据UUID查找通道
      *
-     * @param uuid
-     * @return
+     * @param uuid 服务通过的ID
+     * @return BluetoothGattCharacteristic
      */
     public BluetoothGattCharacteristic find(String uuid) {
         if (mBluetoothGatt != null) {
@@ -498,29 +498,14 @@ public class BleSocket {
 
     //region GET/SET/toString
 
-    /**
-     * 获取该socket对应的蓝牙操作对象
-     *
-     * @return
-     */
     public BleHelper getBleHelper() {
         return mBleHelper;
     }
 
-    /**
-     * 设置该socket的蓝牙操作对象
-     *
-     * @param bleHelper
-     */
     public void setBleHelper(BleHelper bleHelper) {
         this.mBleHelper = bleHelper;
     }
 
-    /**
-     * 设置蓝牙操作的回调对象
-     *
-     * @param bleCallback
-     */
     public void setBleCallback(BleCallback bleCallback) {
         this.mBleCallback = bleCallback;
     }
@@ -542,20 +527,10 @@ public class BleSocket {
         this.mCurrentBleUUID = currentBleUUID;
     }
 
-    /**
-     * 获取蓝牙设备对象
-     *
-     * @return
-     */
     public BluetoothDevice getBluetoothDevice() {
         return mBluetoothDevice;
     }
 
-    /**
-     * 设置蓝牙设备对象
-     *
-     * @param bluetoothDevice
-     */
     public void setBluetoothDevice(BluetoothDevice bluetoothDevice) {
         this.mBluetoothDevice = bluetoothDevice;
     }
@@ -563,7 +538,7 @@ public class BleSocket {
     /**
      * 将该socket的信息拼接成字符串返回,设备名+设备mac地址
      *
-     * @return
+     * @return String
      */
     @Override
     public String toString() {

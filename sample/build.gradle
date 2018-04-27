@@ -116,24 +116,23 @@ repositories {
 /* greenDao  https://github.com/greenrobot/greenDAO   */
 buildscript {
     repositories {
+        jcenter()
         mavenCentral() // add repository
     }
     dependencies {
-//        classpath 'com.android.tools.build:gradle:2.3.3'
-//        classpath 'org.greenrobot:greendao-gradle-plugin:3.2.2' // add plugin
-//        classpath 'org.greenrobot:greendao-gradle-plugin:3.2.1'
+//        classpath 'com.android.tools.build:gradle:3.1.1'
+        classpath 'org.greenrobot:greendao-gradle-plugin:3.2.2' // add plugin
     }
 }
 // In your app projects build.gradle file:
-//apply plugin: 'com.android.application'
+apply plugin: 'com.android.application'
 apply plugin: 'org.greenrobot.greendao' // apply plugin
 
 dependencies {
-//    compile 'org.greenrobot:greendao:3.2.2' // add library
-    compile'org.greenrobot:greendao:3.2.0'
+    compile 'org.greenrobot:greendao:3.2.2' // add library
 }
 greendao {
     schemaVersion 1
-    daoPackage 'ico.ico.blelocks.db'
+    daoPackage 'ico.ico.ble.demo.db'
     targetGenDir 'src/main/java'
 }

@@ -31,7 +31,7 @@ public class DeviceDao extends AbstractDao<Device, Long> {
      * Creates the underlying database table.
      */
     public static void createTable(Database db, boolean ifNotExists) {
-        String constraint = ifNotExists ? "IF NOT EXISTS " : "";
+        String constraint = ifNotExists ? "IF NOT EXISTS ": "";
         db.execSQL("CREATE TABLE " + constraint + "\"DEVICE\" (" + //
                 "\"_id\" INTEGER PRIMARY KEY AUTOINCREMENT ," + // 0: id
                 "\"NAME\" TEXT," + // 1: name
@@ -39,9 +39,7 @@ public class DeviceDao extends AbstractDao<Device, Long> {
                 "\"TYPE\" INTEGER NOT NULL );"); // 3: type
     }
 
-    /**
-     * Drops the underlying database table.
-     */
+    /** Drops the underlying database table. */
     public static void dropTable(Database db, boolean ifExists) {
         String sql = "DROP TABLE " + (ifExists ? "IF EXISTS " : "") + "\"DEVICE\"";
         db.execSQL(sql);
@@ -103,14 +101,14 @@ public class DeviceDao extends AbstractDao<Device, Long> {
         entity.setName(cursor.isNull(offset + 1) ? null : cursor.getString(offset + 1));
         entity.setSerial(cursor.getString(offset + 2));
         entity.setType(cursor.getInt(offset + 3));
-    }
-
+     }
+     
     @Override
     protected final Long updateKeyAfterInsert(Device entity, long rowId) {
         entity.setId(rowId);
         return rowId;
     }
-
+    
     @Override
     public Long getKey(Device entity) {
         if (entity != null) {
@@ -119,7 +117,7 @@ public class DeviceDao extends AbstractDao<Device, Long> {
             return null;
         }
     }
-
+    
     @Override
     public boolean hasKey(Device entity) {
         return entity.getId() != null;
@@ -140,5 +138,5 @@ public class DeviceDao extends AbstractDao<Device, Long> {
         public final static Property Serial = new Property(2, String.class, "serial", false, "SERIAL");
         public final static Property Type = new Property(3, int.class, "type", false, "TYPE");
     }
-
+    
 }

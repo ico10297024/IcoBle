@@ -4,8 +4,8 @@ package ico.ico.ble;
 import java.net.SocketTimeoutException;
 
 /**
- * 自定义线程
  * 增加了结束标记和超时标记
+ * <p>
  * 增加了同步运行的方法，需要设置超时时间
  */
 public class IcoThread extends Thread {
@@ -18,7 +18,7 @@ public class IcoThread extends Thread {
     }
 
     /**
-     * 设置该线程已运行完毕，并调用interrupt
+     * 设置该线程已运行完毕，并调用{@link #interrupt}
      */
     public void close() {
         this.interrupt();
@@ -26,7 +26,7 @@ public class IcoThread extends Thread {
     }
 
     /**
-     * 标志该线程已超时，并调用interrupt
+     * 标志该线程已超时，并调用{@link #interrupt}
      */
     public void timeout() {
         this.interrupt();
@@ -46,7 +46,7 @@ public class IcoThread extends Thread {
      * 同步执行线程
      *
      * @param timeout 设置线程运行超时时间
-     * @throws SocketTimeoutException
+     * @throws SocketTimeoutException 当线程运行超时后将抛出该异常
      */
     public void execute(Long timeout) throws SocketTimeoutException {
         IcoThread.this.start();

@@ -38,7 +38,7 @@ import rx.functions.Action1;
  */
 public class BleZmyListActivity extends BaseFragActivity implements EasyPermissions.PermissionCallbacks, android.support.v4.widget.SwipeRefreshLayout.OnRefreshListener {
     static int DEVICE_TYPE = DeviceType.BLE_ZMY;
-    static String keyword = "BLE";
+    static String keyword = "DM";
     static String format = RegularConstant.MAC;
     //region ButterKnife
     @BindView(R.id.swipeRefreshLayout)
@@ -149,7 +149,7 @@ public class BleZmyListActivity extends BaseFragActivity implements EasyPermissi
         @Override
         public void onClick(View view) {
             BaseViewHolder holder = (BaseViewHolder) view.getTag();
-            aboutControl.mBleSocket.setBleFilterCondition(holder.itemData.getSerial(), 0);
+            aboutControl.setBleSerial(holder.itemData.getSerial());
             switch (view.getId()) {
                 case R.id.btn_open:
                     aboutControl.open();
@@ -174,6 +174,7 @@ public class BleZmyListActivity extends BaseFragActivity implements EasyPermissi
         MyBleCallback mBleCallback;
         BleMgr mBleMgr;
         BleSocket mBleSocket;
+        BluetoothDevice mBluetoothDevice;
         Action1 timeTask = new Action1() {
             @Override
             public void call(Object o) {
@@ -200,6 +201,16 @@ public class BleZmyListActivity extends BaseFragActivity implements EasyPermissi
             mBleCallback = new MyBleCallback();
             mBleSocket = new BleSocket(mActivity, mBleCallback);
             mBleMgr = new BleMgr(mBleSocket);
+        }
+
+
+        public void setBleSerial(String serial) {
+            mBluetoothDevice = null;
+            if (!mBleSocket.isClosed()) {
+                mBleSocket.close();
+            }
+            mBleSocket.reset();
+            mBleSocket.setBleFilterCondition(serial, 0);
         }
 
         void showProgressDialog() {
@@ -315,6 +326,9 @@ public class BleZmyListActivity extends BaseFragActivity implements EasyPermissi
                             break;
                         case BleSocket.FAIL_STATUS_UNCONNECT_DISCONNECT:
                             msg = "连接失败";
+                            break;
+                        case BleSocket.FAIL_STATUS_KNOWN_DEVICE:
+                            msg = "无法识别的设备";
                             break;
                     }
                     mBleMgr.getCurrentOperationFlag().finishOper();
