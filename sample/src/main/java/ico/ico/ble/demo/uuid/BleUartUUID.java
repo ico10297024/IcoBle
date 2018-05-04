@@ -6,15 +6,20 @@ import ico.ico.ble.BleSocket;
  * Created by root on 18-4-23.
  */
 
-public class BleUUID implements BleSocket.BLeUUIDI {
+public class BleUartUUID implements BleSocket.BLeUUIDI {
 
-    private static BleUUID instance;
+    private static BleUartUUID instance;
 
-    public static BleUUID getInstance() {
+    public static BleUartUUID getInstance() {
         if (instance == null) {
-            instance = new BleUUID();
+            instance = new BleUartUUID();
         }
         return instance;
+    }
+
+    @Override
+    public String getBleName() {
+        return "BLE-UART";
     }
 
     @Override

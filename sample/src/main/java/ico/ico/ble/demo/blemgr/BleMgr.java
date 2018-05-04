@@ -7,7 +7,7 @@ package ico.ico.ble.demo.blemgr;
 import java.util.concurrent.TimeUnit;
 
 import ico.ico.ble.BleSocket;
-import ico.ico.ble.demo.uuid.DmMoudleUUID;
+import ico.ico.ble.demo.uuid.DmModuleUUID;
 import rx.Observable;
 import rx.Subscription;
 import rx.android.schedulers.AndroidSchedulers;
@@ -27,7 +27,7 @@ public class BleMgr {
     /**
      * TODO 支持的设备列表,通过{@link BleSocket#setSupportBle(BleSocket.BLeUUIDI...)}设置可支持的设备列表,在BleSocket成功连接上蓝牙设备后会自动匹配列表,匹配成功后将使用对应设备的UUID进行收发数据
      */
-    private BleSocket.BLeUUIDI[] mSupportBle = new BleSocket.BLeUUIDI[]{DmMoudleUUID.getInstance()};
+    private BleSocket.BLeUUIDI[] mSupportBle = new BleSocket.BLeUUIDI[]{DmModuleUUID.getInstance()};
 
     /**
      * 电量

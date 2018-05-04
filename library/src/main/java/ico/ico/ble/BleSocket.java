@@ -14,6 +14,9 @@ import android.os.Handler;
 import android.text.TextUtils;
 
 import java.util.ArrayList;
+import java.util.Collections;
+import java.util.HashSet;
+import java.util.Iterator;
 import java.util.List;
 import java.util.UUID;
 
@@ -95,7 +98,7 @@ public class BleSocket {
      * <p>
      * 并从对应的BLeUUIDI中获取该设备收发数据的通道UUID
      */
-    protected BLeUUIDI[] mSupportBle;
+    protected HashSet<BLeUUIDI> mSupportBle;
     /**
      * 标识当前设备的种类
      */
@@ -163,6 +166,7 @@ public class BleSocket {
     public BleSocket(Context context, BleCallback bleCallback, BLeUUIDI... supportBle) {
         this.mContext = context;
         this.mBleCallback = bleCallback;
+        setSupportBle(supportBle);
         this.mHandler = new Handler(mContext.getMainLooper());
     }
 
@@ -175,9 +179,8 @@ public class BleSocket {
      * @param supportBle      支持的设备种类列表,连接成功后将自动进行匹配并使用对应的收发通道UUID
      */
     public BleSocket(Context context, BleCallback bleCallback, BluetoothDevice bluetoothDevice, BLeUUIDI... supportBle) {
-        this(context, bleCallback);
+        this(context, bleCallback, supportBle);
         this.mBluetoothDevice = bluetoothDevice;
-        this.mSupportBle = supportBle;
     }
 
     /**
@@ -190,9 +193,8 @@ public class BleSocket {
      * @param supportBle  支持的设备种类列表,连接成功后将自动进行匹配并使用对应的收发通道UUID
      */
     public BleSocket(Context context, BleCallback bleCallback, String filter, int type, BLeUUIDI... supportBle) {
-        this(context, bleCallback);
+        this(context, bleCallback, supportBle);
         setBleFilterCondition(filter, type);
-        this.mSupportBle = supportBle;
     }
 
     /**
@@ -204,9 +206,8 @@ public class BleSocket {
      * @param supportBle  支持的设备种类列表,连接成功后将自动进行匹配并使用对应的收发通道UUID
      */
     public BleSocket(Context context, BleCallback bleCallback, BleHelper bleHelper, BLeUUIDI... supportBle) {
-        this(context, bleCallback);
+        this(context, bleCallback, supportBle);
         setBleHelper(bleHelper);
-        this.mSupportBle = supportBle;
     }
 
     /**
@@ -288,7 +289,11 @@ public class BleSocket {
     /**
      * 获取当前socket的连接状态
      *
-     * @return int
+     * @return int {@link #STATE_UNKNOWN}
+     * {@link #STATE_CONNECTING}
+     * {@link #STATE_CONNECTED}
+     * {@link #STATE_CONNECTED_DISCOVER}
+     * {@link #STATE_DISCONNECTED}
      */
     public int getConnectionState() {
         return mConnectionState;
@@ -447,6 +452,36 @@ public class BleSocket {
     }
 
     /**
+     * 设置蓝牙搜索过滤器
+     *
+     * @param bleFilter 蓝牙搜索过滤器
+     */
+    public void setBleFilterCondition(BleHelper.BleFilter bleFilter) {
+        if (mBleHelper == null) {
+            BleHelper bleHelper = new BleHelper(mContext, new BleCallback() {
+                @Override
+                public void found(BluetoothDevice device, int rssi) {
+                    synchronized (this) {
+                        if (mBluetoothDevice == null) {
+                            //设置蓝牙设备对象
+                            mBluetoothDevice = device;
+                            //停止搜索
+                            mBleHelper.stopScan();
+                            //调用回调
+                            mBleCallback.found(device, rssi);
+                            //连接设备
+                            connect();
+                        }
+                    }
+                }
+            });
+            setBleHelper(bleHelper);
+        }
+        //设置过滤器
+        mBleHelper.setBleFilter(bleFilter);
+    }
+
+    /**
      * 设置通道通知
      * <p>
      * 连接成功后,确定设备种类后,设置设备的通知通道
@@ -510,13 +545,30 @@ public class BleSocket {
         this.mBleCallback = bleCallback;
     }
 
-
-    public BLeUUIDI[] getSupportBle() {
-        return mSupportBle;
+    public ArrayList<BLeUUIDI> getSupportBle() {
+        if (mSupportBle == null) return new ArrayList<>();
+        return new ArrayList<>(mSupportBle);
     }
 
     public void setSupportBle(BLeUUIDI... supportBle) {
-        this.mSupportBle = supportBle;
+        if (supportBle == null || supportBle.length == 0) return;
+        if (mSupportBle == null) mSupportBle = new HashSet<>();
+        mSupportBle.clear();
+        Collections.addAll(mSupportBle, supportBle);
+    }
+
+    public void addSupportBle(BLeUUIDI... supportBle) {
+        if (supportBle == null || supportBle.length == 0) return;
+        if (mSupportBle == null) mSupportBle = new HashSet<>();
+        Collections.addAll(mSupportBle, supportBle);
+    }
+
+    public void removeSupportBle(BLeUUIDI... supportBle) {
+        if (supportBle == null || supportBle.length == 0) return;
+        if (mSupportBle == null || mSupportBle.size() == 0) return;
+        for (int i = 0; i < supportBle.length; i++) {
+            this.mSupportBle.remove(supportBle[i]);
+        }
     }
 
     public BLeUUIDI getCurrentBleUUID() {
@@ -566,6 +618,8 @@ public class BleSocket {
      * 不同的蓝牙设备,有不同的uuid,根据UUID来确定是哪种设备,然后设置收发通道
      */
     public interface BLeUUIDI {
+        public String getBleName();
+
         public String getEnableNotificationUUID();
 
         public String getWriteUUID();
@@ -609,14 +663,16 @@ public class BleSocket {
                     mConnectionState = STATE_CONNECTED_DISCOVER;
                 }
                 //确定当前连接的蓝牙设备属于给定的设备类别表中的哪一种
-                if (mSupportBle == null || mSupportBle.length == 0) {
+                if (mSupportBle == null || mSupportBle.size() == 0) {
                     mBleCallback.connectFail(BleSocket.this, FAIL_STATUS_KNOWN_DEVICE);
                     return;
                 }
-                for (int i = 0; i < mSupportBle.length; i++) {
-                    BluetoothGattCharacteristic chars = find(mSupportBle[i].getReadUUID());
+                Iterator<BLeUUIDI> iter = mSupportBle.iterator();
+                while (iter.hasNext()) {
+                    BLeUUIDI bLeUUIDI = iter.next();
+                    BluetoothGattCharacteristic chars = find(bLeUUIDI.getReadUUID());
                     if (chars != null) {
-                        mCurrentBleUUID = mSupportBle[i];
+                        mCurrentBleUUID = bLeUUIDI;
                         break;
                     }
                 }

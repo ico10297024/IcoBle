@@ -9,6 +9,9 @@ buildscript {
     dependencies {
         classpath 'com.android.tools.build:gradle:3.0.0'
         classpath 'org.greenrobot:greendao-gradle-plugin:3.2.2'
+
+        classpath 'com.novoda:bintray-release:+'
+
 //        classpath 'com.neenbedankt.gradle.plugins:android-apt:1.8'
 
         // NOTE: Do not place your application dependencies here; they belong
@@ -22,8 +25,36 @@ allprojects {
         maven { url "https://jitpack.io" }
         google()
     }
-}
 
-//task clean(type: Delete) {
-//    delete rootProject.buildDir
+//    tasks.withType(Javadoc) {
+//        options{
+//            encoding "UTF-8"
+//            charSet 'UTF-8'
+//            author true
+//            version true
+//            links "http://docs.oracle.com/javase/7/docs/api"
+//            title PROJ_ARTIFACTID
+//        }
+//    }
+    tasks.withType(Javadoc) {
+        options{
+            encoding "UTF-8"
+            charSet 'UTF-8'
+            links "http://docs.oracle.com/javase/7/docs/api"
+        }
+    }
+//    tasks.withType(JavaCompile) {
+//        options.encoding = "UTF-8"
+//        options.compilerArgs << "-Xlint:unchecked"
+//    }
+}
+// lucifer add
+//ext {
+//    userOrg = 'ico'//组织名称，不是用户名真不是用户名这个坑了我2个小时，默认是有一个用户名的ogr,在bintray.com控制面板可以添加多个Organizations
+//    groupId = 'ico.ico.ble'//使用和包名一样就行 不一样有没事
+//    uploadName = 'IcoBle3'//就是项目名称 像我的项目LucferJcenterExample，app 和lucenterlibtest 叫做mudule
+//    publishVersion = '1.0.0'
+//    desc = 'https://github.com/ico10297024/IcoBle'
+//    website = 'https://github.com/ico10297024/IcoBle'//没有也没事 有最好能关联你的项目最好 此处我随便填一个
+//    licences = ['Apache-2.0']
 //}

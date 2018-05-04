@@ -6,15 +6,20 @@ import ico.ico.ble.BleSocket;
  * Created by root on 18-4-23.
  */
 
-public class DmMoudleUUID implements BleSocket.BLeUUIDI {
+public class DmModuleUUID implements BleSocket.BLeUUIDI {
 
-    private static DmMoudleUUID instance;
+    private static DmModuleUUID instance;
 
-    public static DmMoudleUUID getInstance() {
+    public static DmModuleUUID getInstance() {
         if (instance == null) {
-            instance = new DmMoudleUUID();
+            instance = new DmModuleUUID();
         }
         return instance;
+    }
+
+    @Override
+    public String getBleName() {
+        return "DM Module";
     }
 
     @Override

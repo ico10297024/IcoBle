@@ -164,7 +164,7 @@ public class BleHelper {
     /**
      * 注册蓝牙状态更改的广播
      *
-     * @param receiver
+     * @param receiver 广播接收器
      */
     public void registerStateChanged(BroadcastReceiver receiver) {
         unregisterStateChanged();
