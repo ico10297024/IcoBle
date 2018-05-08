@@ -134,10 +134,6 @@ public class BleSocket {
      */
     BleCallback mBleCallback;
     /**
-     * 数据通道
-     */
-    private List<BluetoothGattService> mBluetoothLeServices;
-    /**
      * 蓝牙操作器
      */
     private BleHelper mBleHelper;
@@ -240,7 +236,6 @@ public class BleSocket {
         //关闭连接
         if (mBluetoothGatt != null) {
             mBluetoothGatt.disconnect();
-            mBluetoothLeServices = null;
         }
     }
 
@@ -282,7 +277,6 @@ public class BleSocket {
             mBluetoothGatt.close();
             mBluetoothGatt = null;
         }
-        mBluetoothLeServices = null;
         closed = false;
     }
 
@@ -516,11 +510,11 @@ public class BleSocket {
      */
     public BluetoothGattCharacteristic find(String uuid) {
         if (mBluetoothGatt != null) {
-            BluetoothGattCharacteristic characteristic = null;
+            List<BluetoothGattService> mBluetoothLeServices = mBluetoothGatt.getServices();
             for (BluetoothGattService service : mBluetoothLeServices) {
                 List<BluetoothGattCharacteristic> characteristics = service.getCharacteristics();
                 for (int i = 0; i < characteristics.size(); i++) {
-                    characteristic = characteristics.get(i);
+                    BluetoothGattCharacteristic characteristic = characteristics.get(i);
                     log.d("BleSocket find characteristic：" + characteristic.getUuid().toString());
                     if (characteristic.getUuid().toString().equalsIgnoreCase(uuid)) {
                         return characteristic;
@@ -658,7 +652,6 @@ public class BleSocket {
             super.onServicesDiscovered(gatt, status);
             log.i(String.format("onServicesDiscovered: status：%d；", status));
             if (status == BluetoothGatt.GATT_SUCCESS) {
-                mBluetoothLeServices = mBluetoothGatt.getServices();
                 synchronized (mConnectionStateLock) {
                     mConnectionState = STATE_CONNECTED_DISCOVER;
                 }
