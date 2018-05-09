@@ -7,6 +7,8 @@ import android.bluetooth.BluetoothDevice;
  */
 public class BleCallback {
 
+    public static final String TAG = BleCallback.class.getSimpleName();
+
     /**
      * 当成功接收到数据时进行回调
      *
@@ -15,8 +17,8 @@ public class BleCallback {
      * @param instruct  数据
      */
     public void receive(BleSocket bleSocket, String uuid, byte[] instruct) {
-        log.w(String.format("%s,接收数据：%s;UUID:%s;", bleSocket.toString(), Common.bytes2Int16(" ", instruct), uuid), BleSocket.TAG);
-//        log.w(String.format("%s,接收数据", bleSocket.toString()), BleSocket.TAG);
+        log.w(String.format("%s,接收数据：%s;UUID:%s;", bleSocket.toString(), Common.bytes2Int16(" ", instruct), uuid), TAG, BleCallback.this.hashCode() + "");
+//        log.w(String.format("%s,接收数据", bleSocket.toString()), TAG,BleCallback.this.hashCode()+"");
     }
 
     /**
@@ -26,8 +28,8 @@ public class BleCallback {
      * @param instruct  数据
      */
     public void sendSuccess(BleSocket bleSocket, byte[] instruct) {
-        log.w(String.format("%s,发送数据成功：%s", bleSocket.toString(), Common.bytes2Int16(" ", instruct)), BleSocket.TAG);
-//        log.w(String.format("%s,发送数据成功", bleSocket.toString()), BleSocket.TAG);
+        log.w(String.format("%s,发送数据成功：%s", bleSocket.toString(), Common.bytes2Int16(" ", instruct)), TAG, BleCallback.this.hashCode() + "");
+//        log.w(String.format("%s,发送数据成功", bleSocket.toString()), TAG,BleCallback.this.hashCode()+"");
     }
 
     /**
@@ -40,8 +42,8 @@ public class BleCallback {
      *                   {@link BleSocket#FAIL_STATUS_PATH_NOT_WRITE}
      */
     public void sendFail(BleSocket bleSocket, byte[] instruct, int failStatus) {
-        log.w(String.format("%s,发送数据失败,错误状态码：%d,数据：%s", bleSocket.toString(), failStatus, Common.bytes2Int16(" ", instruct)), BleSocket.TAG);
-//        log.w(String.format("%s,发送数据失败,错误状态码：%d", bleSocket.toString(), failStatus), BleSocket.TAG);
+        log.w(String.format("%s,发送数据失败,错误状态码：%d,数据：%s", bleSocket.toString(), failStatus, Common.bytes2Int16(" ", instruct)), TAG, BleCallback.this.hashCode() + "");
+//        log.w(String.format("%s,发送数据失败,错误状态码：%d", bleSocket.toString(), failStatus), TAG,BleCallback.this.hashCode()+"");
     }
 
     /**
@@ -53,7 +55,7 @@ public class BleCallback {
      *                   {@link BleSocket#FAIL_STATUS_KNOWN_DEVICE}
      */
     public void connectFail(BleSocket bleSocket, int failStatus) {
-        log.e(String.format("%s,连接失败,failStatus：%d", bleSocket.toString(), failStatus), BleSocket.TAG);
+        log.e(String.format("%s,连接失败,failStatus：%d", bleSocket.toString(), failStatus), TAG, BleCallback.this.hashCode() + "");
     }
 
     /**
@@ -62,7 +64,7 @@ public class BleCallback {
      * @param bleSocket 蓝牙的连接对象
      */
     public void connectSuccess(BleSocket bleSocket) {
-        log.w(String.format("%s,连接成功", bleSocket.toString()), BleSocket.TAG);
+        log.w(String.format("%s,连接成功", bleSocket.toString()), TAG, BleCallback.this.hashCode() + "");
     }
 
     /**
@@ -71,7 +73,7 @@ public class BleCallback {
      * @param bleSocket 蓝牙的连接对象
      */
     public void disconnect(BleSocket bleSocket) {
-        log.e(String.format("%s,连接断开", bleSocket.toString()), BleSocket.TAG);
+        log.e(String.format("%s,连接断开", bleSocket.toString()), TAG, BleCallback.this.hashCode() + "");
     }
 
     //BleHelper
@@ -83,6 +85,6 @@ public class BleCallback {
      * @param rssi   信号强度
      */
     public void found(BluetoothDevice device, int rssi) {
-        log.w(String.format("name:%s,mac:%s,rssi:%d,发现设备", device.getName(), device.getAddress(), rssi), BleSocket.TAG);
+        log.w(String.format("name:%s,mac:%s,rssi:%d,发现设备", device.getName(), device.getAddress(), rssi), TAG, BleCallback.this.hashCode() + "");
     }
 }

@@ -22,6 +22,8 @@ import java.util.List;
  */
 public class BleHelper {
 
+    public static final String TAG = BleHelper.class.getSimpleName();
+
     public static final String ACTION_FOUND = "com.sunruncn.ble.FOUND";
     /**
      * 蓝牙适配器
@@ -69,7 +71,7 @@ public class BleHelper {
                     if (mBleFilter != null && mBleFilter.onBleFilter(device)) {
                         mBleCallback.found(device, rssi);
                     } else {
-                        log.d(String.format("name:%s,mac:%s,rssi:%d,过滤设备", device.getName(), device.getAddress(), rssi, BleSocket.TAG));
+                        log.d(String.format("name:%s,mac:%s,rssi:%d,过滤设备", device.getName(), device.getAddress(), rssi, TAG, BleHelper.this.hashCode() + ""));
                     }
                 }
             }
@@ -149,7 +151,7 @@ public class BleHelper {
      * 开启搜索
      */
     public void startScan() {
-        log.d("开启搜索", BleSocket.TAG);
+        log.d("开启搜索", TAG, BleHelper.this.hashCode() + "");
         scanner.startScan();
     }
 
@@ -157,7 +159,7 @@ public class BleHelper {
      * 停止搜索
      */
     public void stopScan() {
-        log.d("结束搜索", BleSocket.TAG);
+        log.d("结束搜索", TAG, BleHelper.this.hashCode() + "");
         scanner.stopScan();
     }
 
@@ -293,7 +295,7 @@ public class BleHelper {
             @Override
             public void onScanResult(int callbackType, ScanResult result) {
                 super.onScanResult(callbackType, result);
-                log.d("onScanResult=======" + callbackType + "||" + result, BleSocket.TAG);
+                log.d("onScanResult=======" + callbackType + "||" + result, TAG, BleHelper.this.hashCode() + "");
                 Intent intent = new Intent(ACTION_FOUND);
                 intent.putExtra(BluetoothDevice.EXTRA_DEVICE, result.getDevice());
                 intent.putExtra(BluetoothDevice.EXTRA_RSSI, (short) result.getRssi());
@@ -303,13 +305,13 @@ public class BleHelper {
             @Override
             public void onBatchScanResults(List<ScanResult> results) {
                 super.onBatchScanResults(results);
-                log.d("onBatchScanResults=======" + results, BleSocket.TAG);
+                log.d("onBatchScanResults=======" + results, TAG, BleHelper.this.hashCode() + "");
             }
 
             @Override
             public void onScanFailed(int errorCode) {
                 super.onScanFailed(errorCode);
-                log.d("onBatchScanResults=======" + errorCode, BleSocket.TAG);
+                log.d("onBatchScanResults=======" + errorCode, TAG, BleHelper.this.hashCode() + "");
             }
         };
 

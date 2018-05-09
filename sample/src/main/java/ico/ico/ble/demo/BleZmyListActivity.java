@@ -203,8 +203,7 @@ public class BleZmyListActivity extends BaseFragActivity implements EasyPermissi
             mBleMgr = new BleMgr(mBleSocket);
         }
 
-
-        public void setBleSerial(String serial) {
+        void setBleSerial(String serial) {
             mBluetoothDevice = null;
             if (!mBleSocket.isClosed()) {
                 mBleSocket.close();
@@ -217,14 +216,14 @@ public class BleZmyListActivity extends BaseFragActivity implements EasyPermissi
             showDialog(ProgressDialog.show(mActivity, "", "正在操作中", false, false));
         }
 
-        public void open() {
+        void open() {
             if (!check()) return;
             mBleSocket.reset();
             showProgressDialog();
             mBleMgr.open(timeTask);
         }
 
-        public void queryPower() {
+        void queryPower() {
             if (!check()) return;
             mBleSocket.reset();
             showProgressDialog();
@@ -232,7 +231,7 @@ public class BleZmyListActivity extends BaseFragActivity implements EasyPermissi
         }
 
 
-        public boolean check() {
+        boolean check() {
             if (!BleHelper.isEnable(mActivity)) {
                 BleHelper.enable(mActivity);
                 return false;
@@ -248,7 +247,7 @@ public class BleZmyListActivity extends BaseFragActivity implements EasyPermissi
             return true;
         }
 
-        public void onDestroy() {
+        void onDestroy() {
             mBleSocket.onDestroy();
         }
 

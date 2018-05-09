@@ -35,7 +35,7 @@ import java.util.UUID;
  */
 @TargetApi(Build.VERSION_CODES.JELLY_BEAN_MR2)
 public class BleSocket {
-    public static final String TAG = "BLE";
+    public static final String TAG = BleSocket.class.getSimpleName();
     /**
      * 服务未发现
      * 连接错误
@@ -211,13 +211,13 @@ public class BleSocket {
      */
     public void connect() {
         if (getConnectionState() == STATE_CONNECTED) {
-            log.w(String.format("%s,设备已连接，连接操作被取消", toString()), TAG);
+            log.w(String.format("%s,设备已连接，连接操作被取消", toString()), TAG, BleSocket.this.hashCode() + "");
             return;
         }
         synchronized (mConnectionStateLock) {
             mConnectionState = STATE_CONNECTING;
         }
-        log.w(String.format("%s,设备开始连接", toString()), TAG);
+        log.w(String.format("%s,设备开始连接", toString()), TAG, BleSocket.this.hashCode() + "");
         mBluetoothGatt = mBluetoothDevice.connectGatt(mContext, false, mMyBluetoothGattCallback);
     }
 
@@ -225,7 +225,7 @@ public class BleSocket {
      * 关闭socket,关闭后该socket不可用,必须使用{@link #reset()}函数来恢复到初始状态
      */
     public void close() {
-        log.e(String.format("%s,close", BleSocket.this.toString()), TAG);
+        log.e(String.format("%s,close", BleSocket.this.toString()), TAG, BleSocket.this.hashCode() + "");
         closed = true;
         //移除数据缓存区的数据
         mDataBuffer.clear();
@@ -338,7 +338,7 @@ public class BleSocket {
             if (mBleHelper != null) {
                 mBleHelper.startScan();
             } else {
-                log.e("无设备对象，或请设置BleHelper来帮助自动化", TAG);
+                log.e("无设备对象，或请设置BleHelper来帮助自动化", TAG, BleSocket.this.hashCode() + "");
             }
         } else if (getConnectionState() == STATE_UNKNOWN) {
             mBluetoothDevice = BleHelper.getBleAdapter(mContext).getRemoteDevice(mBluetoothDevice.getAddress());
@@ -358,7 +358,7 @@ public class BleSocket {
                 return false;
             }
             characteristic.setValue(data);
-            log.w(String.format("%s,发送数据：%s；UUID:%s", this.toString(), Common.bytes2Int16(" ", data), uuid), TAG);
+            log.w(String.format("%s,发送数据：%s；UUID:%s", this.toString(), Common.bytes2Int16(" ", data), uuid), TAG, BleSocket.this.hashCode() + "");
             boolean success = mBluetoothGatt.writeCharacteristic(characteristic);
             if (!success) {
                 mBleCallback.sendFail(this, data, FAIL_STATUS_NONE);
@@ -483,7 +483,7 @@ public class BleSocket {
     private void setReadCharacteristicNotification() {
         BluetoothGattCharacteristic characteristic = find(mCurrentBleUUID.getReadUUID());
         if (!canNotify(characteristic)) {
-            log.e("通道没有通知的特性，UUID：" + mCurrentBleUUID.getReadUUID(), TAG);
+            log.e("通道没有通知的特性，UUID：" + mCurrentBleUUID.getReadUUID(), TAG, BleSocket.this.hashCode() + "");
             return;
         }
         if (mBluetoothGatt == null) {
@@ -491,13 +491,13 @@ public class BleSocket {
         }
         synchronized (mBluetoothGatt) {
             boolean isEnableNotification = mBluetoothGatt.setCharacteristicNotification(characteristic, true);
-            log.w(String.format("设置通道通知%s，UUID：" + characteristic.getUuid(), isEnableNotification ? "成功" : "失败"), TAG);
+            log.w(String.format("设置通道通知%s，UUID：" + characteristic.getUuid(), isEnableNotification ? "成功" : "失败"), TAG, BleSocket.this.hashCode() + "");
             //TODO ble和dm的uuid相同,write后需要延迟
             if (isEnableNotification) {
                 BluetoothGattDescriptor descriptor = characteristic.getDescriptor(UUID.fromString(mCurrentBleUUID.getEnableNotificationUUID()));
                 descriptor.setValue(BluetoothGattDescriptor.ENABLE_NOTIFICATION_VALUE);
                 mBluetoothGatt.writeDescriptor(descriptor);
-                log.w("启用通道通知成功，UUID：" + descriptor.getUuid(), TAG);
+                log.w("启用通道通知成功，UUID：" + descriptor.getUuid(), TAG, BleSocket.this.hashCode() + "");
             }
         }
     }
@@ -511,6 +511,9 @@ public class BleSocket {
     public BluetoothGattCharacteristic find(String uuid) {
         if (mBluetoothGatt != null) {
             List<BluetoothGattService> mBluetoothLeServices = mBluetoothGatt.getServices();
+            if (mBluetoothLeServices == null || mBluetoothLeServices.size() == 0) {
+                return null;
+            }
             for (BluetoothGattService service : mBluetoothLeServices) {
                 List<BluetoothGattCharacteristic> characteristics = service.getCharacteristics();
                 for (int i = 0; i < characteristics.size(); i++) {
