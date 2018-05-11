@@ -1,11 +1,31 @@
 # IcoBle
-## 20180425
-增加设备自动识别机制,通过setSupportBle设置可支持的设备列表(BleSocket.BleUUIDI),在BleSocket成功连接上蓝牙设备后会自动匹配列表,匹配成功后将使用对应设备的UUID进行收发数据;
-取消了低版本搜索器反复开关的逻辑,具体查看BleHelper.Scanner的注释;
+# 引入方式
+## Gradle
+```
+compile 'ico.ico.ble:IcoBle:1.0.2'
+```
+## Maven
+```
+<dependency>
+  <groupId>ico.ico.ble</groupId>
+  <artifactId>IcoBle</artifactId>
+  <version>1.0.2</version>
+  <type>pom</type>
+</dependency>
+```
+## lvy
+```
+<dependency org='ico.ico.ble' name='IcoBle' rev='1.0.2'>
+  <artifact name='IcoBle' ext='pom' ></artifact>
+</dependency>
+```
 
-## 20180423
+
+# 项目说明
 基于代码设计复用性的考虑，我设计了一套蓝牙操作以及针对实际工作中基于蓝牙协议版本设计的一系列蓝牙操作的类
+
 基于提高开发效率的初衷，在代码设计中，尽量让开发者只考虑具体的业务逻辑实现，而不去考虑底层实现
+
 根据思考我发现了蓝牙开发中以下几个特点：
 ### 1、不管谁做蓝牙开发，基于android api的蓝牙处理代码都是一样的
 ### 2、针对不同的蓝牙设备操作，只有蓝牙的服务通道UUID，发送和接收的数据格式不同
@@ -25,6 +45,7 @@ BleHelper在搜索到设备后，将蓝牙设备对象交由BleSocket进行处�
 #### 根据特点2，我编写了BleMgr，BleMgr的设计原理基于管理者模式以及插件化（没看过设计模式，不过应该大同小异）
 根据实际项目的协议格式,编写对应的BleMgr,通过插入不同的BleSocket进行控制/数据收发/数据解析
 工欲善其事必先利其器，这里的BleMgr就是器，针对不同协议构建的器
+
 插件化指得是BleSocket，将不同的BleSocket插入到BleMgr，就可以根据BleMgr对应的协议对BleSocket进行控制操作；
 
 ##### BleMgr
