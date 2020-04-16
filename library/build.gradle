@@ -44,6 +44,7 @@ repositories {
     google()
 }
 /*jcenter*/
+/*
 allprojects {
     tasks.withType(Javadoc) {
         options.addStringOption('Xdoclint:none', '-quiet')
@@ -60,20 +61,14 @@ publish {//lucifer add
     desc = 'https://github.com/ico10297024/IcoBle'
     website = 'https://github.com/ico10297024/IcoBle'
     licences = ['Apache-2.0']
-
-//    userOrg = rootProject.userOrg
-//    groupId = rootProject.groupId
-//    uploadName = rootProject.uploadName
-//    publishVersion = rootProject.publishVersion
-//    desc = 'https://github.com/ico10297024/IcoBle'
-//    website = rootProject.website
-//    licences = rootProject.licences
 }
-/* 本地打包 */
+*/
+/* 本地打包 *//*
+
 ext {
     PUBLISH_GROUP_ID = 'ico.ico.ble'
     PUBLISH_ARTIFACT_ID = 'IcoBle'
     PUBLISH_VERSION = '1.0.2'
 }
 
-//apply from: 'https://raw.githubusercontent.com/blundell/release-android-library/master/android-release-aar.gradle'
+apply from: 'https://raw.githubusercontent.com/blundell/release-android-library/master/android-release-aar.gradle'*/

@@ -39,7 +39,7 @@ import rx.functions.Action1;
 public class BleZmyListActivity extends BaseFragActivity implements EasyPermissions.PermissionCallbacks, android.support.v4.widget.SwipeRefreshLayout.OnRefreshListener {
     static int DEVICE_TYPE = DeviceType.BLE_ZMY;
     static String keyword = "DM";
-    static String format = RegularConstant.MAC;
+    static String format = RegularConstant.MAC_S;
     //region ButterKnife
     @BindView(R.id.swipeRefreshLayout)
     SwipeRefreshLayout swipeRefreshLayout;
@@ -86,7 +86,6 @@ public class BleZmyListActivity extends BaseFragActivity implements EasyPermissi
 
     @OnClick(R.id.btn_all)
     public void onClick() {
-        aboutControl.mBleSocket.setBleFilterCondition(keyword, 1);
         aboutControl.open();
     }
 
@@ -149,13 +148,12 @@ public class BleZmyListActivity extends BaseFragActivity implements EasyPermissi
         @Override
         public void onClick(View view) {
             BaseViewHolder holder = (BaseViewHolder) view.getTag();
-            aboutControl.setBleSerial(holder.itemData.getSerial());
             switch (view.getId()) {
                 case R.id.btn_open:
-                    aboutControl.open();
+                    aboutControl.open(holder.itemData.getSerial());
                     break;
                 case R.id.btn_query:
-                    aboutControl.queryPower();
+                    aboutControl.queryPower(holder.itemData.getSerial());
                     break;
             }
         }
@@ -173,63 +171,78 @@ public class BleZmyListActivity extends BaseFragActivity implements EasyPermissi
 
         MyBleCallback mBleCallback;
         BleMgr mBleMgr;
-        BleSocket mBleSocket;
-        BluetoothDevice mBluetoothDevice;
         Action1 timeTask = new Action1() {
             @Override
             public void call(Object o) {
-                dismissDialog();
                 String msg = "";
-                if (mBleSocket.getBluetoothDevice() == null) {
+                if (mBleMgr.getBleSocket().getBluetoothDevice() == null) {
                     msg = "周边未发现该设备！";
-                } else if (mBleSocket.getConnectionState() == BleSocket.STATE_CONNECTING) {
+                } else if (mBleMgr.getBleSocket().getConnectionState() == BleSocket.STATE_CONNECTING) {
                     msg = "连接超时！";
-                } else if (mBleSocket.getConnectionState() == BleSocket.STATE_CONNECTED) {
+                } else if (mBleMgr.getBleSocket().getConnectionState() == BleSocket.STATE_CONNECTED) {
                     msg = "操作超时！";
                 } else {
                     msg = "超时！";
                 }
-                if (!mBleSocket.isClosed()) {
-                    mBleSocket.close();
-                }
-                mBleMgr.getCurrentOperationFlag().finishOper();
-                showToast(msg);
+                mBleMgr.closeSocket();
+                dismissProgressDialog();
+                mPromptHelper.showToasts(msg);
             }
         };
 
         public AboutControl() {
             mBleCallback = new MyBleCallback();
-            mBleSocket = new BleSocket(mActivity, mBleCallback);
-            mBleMgr = new BleMgr(mBleSocket);
+            mBleMgr = new BleMgr(mActivity, mBleCallback);
         }
 
-        void setBleSerial(String serial) {
-            mBluetoothDevice = null;
-            if (!mBleSocket.isClosed()) {
-                mBleSocket.close();
+        ProgressDialog progressDialog;
+
+        void showProgressDialog(final String msg) {
+            log.w("===showProgressDialog " + msg);
+            if (progressDialog == null) {
+                progressDialog = ProgressDialog.show(mActivity, "", msg, false, false);
+            } else {
+                progressDialog.setMessage(msg);
             }
-            mBleSocket.reset();
-            mBleSocket.setBleFilterCondition(serial, 0);
+            if (!progressDialog.isShowing()) {
+                synchronized (progressDialog) {
+                    runOnUiThread(new Runnable() {
+                        @Override
+                        public void run() {
+                            progressDialog.show();
+                        }
+                    });
+                }
+            }
         }
 
-        void showProgressDialog() {
-            showDialog(ProgressDialog.show(mActivity, "", "正在操作中", false, false));
+        void dismissProgressDialog() {
+            if (progressDialog != null && progressDialog.isShowing()) {
+                synchronized (progressDialog) {
+                    progressDialog.dismiss();
+                }
+            }
         }
 
+        /** 通过名字随机控制 */
         void open() {
             if (!check()) return;
-            mBleSocket.reset();
-            showProgressDialog();
-            mBleMgr.open(timeTask);
+            showProgressDialog("正在搜索中...");
+            mBleMgr.open(timeTask, keyword, BleSocket.FT_NAME);
         }
 
-        void queryPower() {
+        /** 指定序列号控制 */
+        void open(String serial) {
             if (!check()) return;
-            mBleSocket.reset();
-            showProgressDialog();
-            mBleMgr.open(timeTask);
+            showProgressDialog("正在搜索中...");
+            mBleMgr.open(timeTask, serial, BleSocket.FT_MAC);
         }
 
+        void queryPower(String serial) {
+            if (!check()) return;
+            showProgressDialog("正在搜索中...");
+            mBleMgr.open(timeTask, serial, BleSocket.FT_MAC);
+        }
 
         boolean check() {
             if (!BleHelper.isEnable(mActivity)) {
@@ -248,7 +261,7 @@ public class BleZmyListActivity extends BaseFragActivity implements EasyPermissi
         }
 
         void onDestroy() {
-            mBleSocket.onDestroy();
+            mBleMgr.closeSocket();
         }
 
         class MyBleCallback extends BleCallback {
@@ -258,13 +271,14 @@ public class BleZmyListActivity extends BaseFragActivity implements EasyPermissi
 
                 Device device1 = new Device();
                 device1.setName(device.getName());
-                device1.setSerial(device.getAddress().replaceAll("[-|:]+", ""));
+                device1.setSerial(device.getAddress().toUpperCase().replaceAll("[-|:]+", ""));
                 device1.setType(DEVICE_TYPE);
 
                 if (MyApplication.that.deviceDao.queryBuilder().where(DeviceDao.Properties.Serial.eq(device1.getSerial())).buildCount().count() == 0) {
                     MyApplication.that.deviceDao.insert(device1);
                 }
                 onRefresh();
+                showProgressDialog("正在连接中...");
             }
 
             @Override
@@ -277,14 +291,14 @@ public class BleZmyListActivity extends BaseFragActivity implements EasyPermissi
                 switch (cmd) {
                     case BleMgr.Command.CMD_OPEN://开门指令发送成功
                         //UI处理,蓝牙处理
-                        dismissDialog();
-                        showToast("开门成功");
-                        mBleSocket.close();
+                        dismissProgressDialog();
+                        mPromptHelper.showToasts("开门成功");
+                        mBleMgr.closeSocket();
                         break;
                     case BleMgr.Command.CMD_QUERY_POWER://查询电量成功
-                        dismissDialog();
-                        showToast("查询电量成功,电量为" + mBleMgr.getBleSocket());
-                        mBleSocket.close();
+                        dismissProgressDialog();
+                        mPromptHelper.showToasts("查询电量成功,电量为" + mBleMgr.getBleSocket());
+                        mBleMgr.closeSocket();
                         break;
                 }
             }
@@ -296,7 +310,7 @@ public class BleZmyListActivity extends BaseFragActivity implements EasyPermissi
                 if (cmd == -1) {
                     return;
                 }
-                dismissDialog();
+                dismissProgressDialog();
                 String msg = "";
                 switch (failStatus) {
                     case BleSocket.FAIL_STATUS_NONE:
@@ -309,14 +323,30 @@ public class BleZmyListActivity extends BaseFragActivity implements EasyPermissi
                         msg = "数据通道没有写入特性";
                         break;
                 }
-                mBleSocket.close();
-                showToast(msg);
+                mBleMgr.closeSocket();
+                mPromptHelper.showToasts(msg);
+            }
+
+            @Override
+            public void sendSuccess(BleSocket bleSocket, byte[] instruct) {
+                super.sendSuccess(bleSocket, instruct);
+                if (!bleSocket.isClosed()) {
+                    showProgressDialog("正在等待操作结果...");
+                }
+            }
+
+            @Override
+            public void connectSuccess(BleSocket bleSocket) {
+                super.connectSuccess(bleSocket);
+                if (!bleSocket.isClosed()) {
+                    showProgressDialog("正在发送数据中...");
+                }
             }
 
             @Override
             public void connectFail(BleSocket bleSocket, int failStatus) {
                 super.connectFail(bleSocket, failStatus);
-                dismissDialog();
+                dismissProgressDialog();
                 if (mBleMgr.getCurrentOperationFlag().isOpering()) {
                     String msg = "";
                     switch (failStatus) {
@@ -330,18 +360,18 @@ public class BleZmyListActivity extends BaseFragActivity implements EasyPermissi
                             msg = "无法识别的设备";
                             break;
                     }
-                    mBleMgr.getCurrentOperationFlag().finishOper();
-                    showToast(msg);
+                    mBleMgr.closeSocket();
+                    mPromptHelper.showToasts(msg);
                 }
             }
 
             @Override
             public void disconnect(BleSocket _BleSocket) {
                 super.disconnect(_BleSocket);
-                dismissDialog();
+                dismissProgressDialog();
                 if (mBleMgr.getCurrentOperationFlag().isOpering()) {
-                    showToast("连接失败");
-                    mBleMgr.getCurrentOperationFlag().finishOper();
+                    mPromptHelper.showToasts("连接失败");
+                    mBleMgr.closeSocket();
                 }
             }
         }
@@ -362,7 +392,7 @@ public class BleZmyListActivity extends BaseFragActivity implements EasyPermissi
             } else {
                 deviceDialogFragment.setDevice(new Device(DEVICE_TYPE), format);
             }
-            showDialogFrag(deviceDialogFragment, DeviceDialogFragment.class.getSimpleName());
+            mPromptHelper.showDialogFrag(deviceDialogFragment, DeviceDialogFragment.class.getSimpleName());
         }
 
         public void showDeviceDialog(Device device) {
@@ -377,7 +407,7 @@ public class BleZmyListActivity extends BaseFragActivity implements EasyPermissi
             } else {
                 deviceDialogFragment.setDevice(device, format);
             }
-            showDialogFrag(deviceDialogFragment, DeviceDialogFragment.class.getSimpleName());
+            mPromptHelper.showDialogFrag(deviceDialogFragment, DeviceDialogFragment.class.getSimpleName());
         }
 
     }

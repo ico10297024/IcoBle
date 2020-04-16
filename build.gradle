@@ -2,8 +2,10 @@
 
 buildscript {
     repositories {
-        jcenter()
-        maven { url "https://jitpack.io" }
+        maven { url 'http://maven.aliyun.com/nexus/content/groups/public/' }
+        maven { url 'https://maven.aliyun.com/nexus/content/repositories/central/' }
+//        jcenter()
+//        maven { url "https://jitpack.io" }
         google()
     }
     dependencies {
@@ -21,32 +23,23 @@ buildscript {
 
 allprojects {
     repositories {
-        jcenter()
-        maven { url "https://jitpack.io" }
+        maven { url 'http://maven.aliyun.com/nexus/content/groups/public/' }
+        maven { url 'https://maven.aliyun.com/nexus/content/repositories/central/' }
+//        jcenter()
+//        maven { url "https://jitpack.io" }
         google()
     }
 
-//    tasks.withType(Javadoc) {
-//        options{
-//            encoding "UTF-8"
-//            charSet 'UTF-8'
-//            author true
-//            version true
-//            links "http://docs.oracle.com/javase/7/docs/api"
-//            title PROJ_ARTIFACTID
-//        }
-//    }
     tasks.withType(Javadoc) {
-        options{
+        options {
             encoding "UTF-8"
             charSet 'UTF-8'
             links "http://docs.oracle.com/javase/7/docs/api"
+//            author true
+//            version true
+//            title PROJ_ARTIFACTID
         }
     }
-//    tasks.withType(JavaCompile) {
-//        options.encoding = "UTF-8"
-//        options.compilerArgs << "-Xlint:unchecked"
-//    }
 }
 // lucifer add
 //ext {

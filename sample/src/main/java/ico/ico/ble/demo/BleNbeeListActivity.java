@@ -166,7 +166,6 @@ public class BleNbeeListActivity extends BaseFragActivity implements EasyPermiss
 
     class AboutControl {
 
-
         MyBleCallback mBleCallback;
         NbeeMgr mNbeeMgr;
         Action1 timeTask = new Action1() {
@@ -226,14 +225,14 @@ public class BleNbeeListActivity extends BaseFragActivity implements EasyPermiss
         void open() {
             if (!check()) return;
             showProgressDialog("正在搜索中...");
-            mNbeeMgr.open(timeTask, keyword, 1);
+            mNbeeMgr.open(timeTask, keyword, BleSocket.FT_NAME);
         }
 
         /** 指定序列号控制 */
         void open(String serial) {
             if (!check()) return;
             showProgressDialog("正在搜索中...");
-            mNbeeMgr.open(timeTask, serial, 0);
+            mNbeeMgr.open(timeTask, serial, BleSocket.FT_MAC);
         }
 
         boolean check() {
@@ -257,7 +256,6 @@ public class BleNbeeListActivity extends BaseFragActivity implements EasyPermiss
         }
 
         class MyBleCallback extends BleCallback {
-
             @Override
             public void found(BluetoothDevice device, int rssi) {
                 super.found(device, rssi);

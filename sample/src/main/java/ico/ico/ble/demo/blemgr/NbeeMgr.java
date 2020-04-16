@@ -67,17 +67,17 @@ public class NbeeMgr {
     /** 开门控制，filter设置筛选关键字，type设置筛选类型，{@link BleSocket#setBleFilterCondition(String, int)} */
     public synchronized void open(Action1 action1, String filter, int type) {
         //新建蓝牙socket对象
-        closeSocket();
-        BleSocket bleSocket = new BleSocket(mContext, mBleCallback);
-        bleSocket.setBleFilterCondition(filter, type);
-        setBleSocket(bleSocket);
+        if (getBleSocket() == null || getBleSocket().isClosed()) {
+            BleSocket bleSocket = new BleSocket(mContext, mBleCallback);
+            bleSocket.setBleFilterCondition(filter, type);
+            setBleSocket(bleSocket);
+        }
         //通过发送来启动流程
-        bleSocket.send(Command.getCommon(Command.CMD_OPEN));
+        mBleSocket.send(Command.getCommon(Command.CMD_OPEN));
         Subscription sub = Observable.just("").subscribeOn(AndroidSchedulers.mainThread()).delay(TIMESOUT, TimeUnit.MILLISECONDS).subscribe(action1);
         currentOperationFlag.saveOpering(Command.CMD_OPEN, sub);
     }
     //endregion
-
 
     //region GETSET
     public BleSocket getBleSocket() {

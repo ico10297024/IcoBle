@@ -38,6 +38,13 @@ import java.util.UUID;
 @TargetApi(Build.VERSION_CODES.JELLY_BEAN_MR2)
 public class BleSocket {
     public static final String TAG = BleSocket.class.getSimpleName();
+
+    //region 设备过滤方式
+    /** 根据序列号过滤 */
+    public static final int FT_MAC = 0;
+    /** 根据名称过滤 */
+    public static final int FT_NAME = 1;
+    //endregion
     //region 错误状态码
     /**
      * 服务未发现
@@ -191,7 +198,7 @@ public class BleSocket {
      * @param context     上下文
      * @param bleCallback 蓝牙回调
      * @param filter      筛选关键字，如果是mac，格式为ABCDEFGHIJKL
-     * @param type        筛选类型，0mac，1name
+     * @param type        筛选类型，{@link #FT_MAC,#FT_NAME}
      * @param supportBle  支持的设备种类列表,连接成功后将自动进行匹配并使用对应的收发通道UUID
      */
     public BleSocket(Context context, BleCallback bleCallback, String filter, int type, BLeUUIDI... supportBle) {
@@ -509,6 +516,7 @@ public class BleSocket {
                 return null;
             }
             for (BluetoothGattService service : mBluetoothLeServices) {
+                log.d("BleSocket find service characteristic：" + service.getUuid().toString());
                 List<BluetoothGattCharacteristic> characteristics = service.getCharacteristics();
                 for (int i = 0; i < characteristics.size(); i++) {
                     BluetoothGattCharacteristic characteristic = characteristics.get(i);
