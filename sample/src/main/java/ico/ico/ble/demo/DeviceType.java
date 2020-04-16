@@ -6,5 +6,6 @@ package ico.ico.ble.demo;
 
 public class DeviceType {
     public static int BLE_ZMY = 0;
+    public static int BLE_NBEE = 0;
 
 }

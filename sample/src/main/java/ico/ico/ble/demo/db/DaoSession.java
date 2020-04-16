@@ -32,7 +32,7 @@ public class DaoSession extends AbstractDaoSession {
 
         registerDao(Device.class, deviceDao);
     }
-
+    
     public void clear() {
         deviceDaoConfig.clearIdentityScope();
     }

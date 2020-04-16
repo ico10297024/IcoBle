@@ -53,4 +53,20 @@ class Common {
         return sb.toString().toUpperCase();
     }
 
+    /**
+     * 每隔几个字符插入一个指定字符
+     *
+     * @param s        原字符串
+     * @param iStr     要插入的字符串
+     * @param interval 间隔时间
+     * @return String
+     */
+    public static String insert(String s, String iStr, int interval) {
+        StringBuffer s1 = new StringBuffer(s);
+        int index;
+        for (index = interval; index < s1.length(); index += (interval + 1)) {
+            s1.insert(index, iStr);
+        }
+        return s1.toString();
+    }
 }

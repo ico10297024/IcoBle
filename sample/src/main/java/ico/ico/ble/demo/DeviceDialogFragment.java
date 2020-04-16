@@ -109,19 +109,19 @@ public class DeviceDialogFragment extends BaseDialogFrag {
         switch (view.getId()) {
             case R.id.btn_confirm:
                 if (TextUtils.isEmpty(etName.getText().toString())) {
-                    showToast("设备名称不能为空");
+                    mActivity.mPromptHelper.showToast("设备名称不能为空");
                     return;
                 }
                 if (TextUtils.isEmpty(etSerial.getText().toString())) {
-                    showToast("设备序列号不能为空");
+                    mActivity.mPromptHelper.showToast("设备序列号不能为空");
                     return;
                 }
                 if (!etSerial.getText().toString().matches(getArguments().getString(FORMAT))) {
-                    showToast("设备序列号格式错误");
+                    mActivity.mPromptHelper.showToast("设备序列号格式错误");
                     return;
                 }
                 mDevice.setName(etName.getText().toString());
-                mDevice.setSerial(etSerial.getText().toString());
+                mDevice.setSerial(etSerial.getText().toString().toUpperCase());
                 MyApplication.that.deviceDao.insertOrReplace(mDevice);
                 dismissAllowingStateLoss();
                 break;

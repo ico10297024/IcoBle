@@ -74,6 +74,4 @@ public class BaseApplication extends Application {
     public void setLocalMac(String localMac) {
         this.localMac = localMac;
     }
-
-
 }

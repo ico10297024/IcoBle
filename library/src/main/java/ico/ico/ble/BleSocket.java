@@ -32,10 +32,13 @@ import java.util.UUID;
  * 1.蓝牙的数据发送后需要延迟N毫秒再关闭连接，否则发送的数据将会丢失
  * <p>
  * 2.如果是从外部传入BleHelper，那么BleHelper需要实现found函数，设置蓝牙设备对象进行连接操作，具体可以看构造函数中的found实现
+ * <p>
+ * 3.不能重复使用该类(connectSuccess有500ms延迟)
  */
 @TargetApi(Build.VERSION_CODES.JELLY_BEAN_MR2)
 public class BleSocket {
     public static final String TAG = BleSocket.class.getSimpleName();
+    //region 错误状态码
     /**
      * 服务未发现
      * 连接错误
@@ -65,7 +68,9 @@ public class BleSocket {
      * 无法识别的设备种类
      */
     public static final int FAIL_STATUS_KNOWN_DEVICE = 6;
-    /*列举蓝牙操作时各个阶段的状态*/
+    //endregion
+
+    //region 列举蓝牙操作时各个阶段的状态
     /**
      * 蓝牙处于断开状态,这种状态是在连接后再断开的状态
      */
@@ -86,6 +91,7 @@ public class BleSocket {
      * 默认状态下,处于刚创建
      */
     public static final int STATE_UNKNOWN = -1;
+    //endregion
     /**
      * 当前界面的上下文
      */
@@ -218,13 +224,20 @@ public class BleSocket {
             mConnectionState = STATE_CONNECTING;
         }
         log.w(String.format("%s,设备开始连接", toString()), TAG, BleSocket.this.hashCode() + "");
-        mBluetoothGatt = mBluetoothDevice.connectGatt(mContext, false, mMyBluetoothGattCallback);
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+            mBluetoothGatt = mBluetoothDevice.connectGatt(mContext, false, mMyBluetoothGattCallback, BluetoothDevice.TRANSPORT_LE);
+        } else {
+            mBluetoothGatt = mBluetoothDevice.connectGatt(mContext, false, mMyBluetoothGattCallback);
+        }
     }
 
     /**
-     * 关闭socket,关闭后该socket不可用,必须使用{@link #reset()}函数来恢复到初始状态
+     * 关闭socket,关闭后该socket不可用
      */
     public void close() {
+        if (closed) {
+            return;
+        }
         log.e(String.format("%s,close", BleSocket.this.toString()), TAG, BleSocket.this.hashCode() + "");
         closed = true;
         //移除数据缓存区的数据
@@ -236,17 +249,6 @@ public class BleSocket {
         //关闭连接
         if (mBluetoothGatt != null) {
             mBluetoothGatt.disconnect();
-        }
-    }
-
-    /**
-     * 不使用该类时请调用该函数销毁
-     */
-    public void onDestroy() {
-        if (!isClosed()) {
-            close();
-        }
-        if (mBluetoothGatt != null) {
             mBluetoothGatt.close();
             mBluetoothGatt = null;
         }
@@ -262,22 +264,6 @@ public class BleSocket {
      */
     public boolean isClosed() {
         return closed;
-    }
-
-    /**
-     * 将socket恢复到初始状态
-     */
-    public void reset() {
-        synchronized (mConnectionStateLock) {
-            mConnectionState = STATE_UNKNOWN;
-        }
-        mBluetoothDevice = null;
-        mCurrentBleUUID = null;
-        if (mBluetoothGatt != null) {
-            mBluetoothGatt.close();
-            mBluetoothGatt = null;
-        }
-        closed = false;
     }
 
     /**
@@ -335,10 +321,18 @@ public class BleSocket {
         }
         /*有无蓝牙设备对*/
         if (mBluetoothDevice == null) {
-            if (mBleHelper != null) {
-                mBleHelper.startScan();
+            if (mType == 0) {
+                mBluetoothDevice = BleHelper.getBleAdapter(mContext).getRemoteDevice(Common.insert(mKeywordFilter, ":", 2));
+            }
+            if (mBluetoothDevice == null) {
+                if (mBleHelper != null) {
+                    mBleHelper.startScan();
+                } else {
+                    log.e("无设备对象，或请设置BleHelper来帮助自动化", TAG, BleSocket.this.hashCode() + "");
+                }
             } else {
-                log.e("无设备对象，或请设置BleHelper来帮助自动化", TAG, BleSocket.this.hashCode() + "");
+                mBleCallback.found(mBluetoothDevice, 0);
+                connect();
             }
         } else if (getConnectionState() == STATE_UNKNOWN) {
             mBluetoothDevice = BleHelper.getBleAdapter(mContext).getRemoteDevice(mBluetoothDevice.getAddress());
@@ -653,6 +647,7 @@ public class BleSocket {
         @Override
         public void onServicesDiscovered(BluetoothGatt gatt, int status) {
             super.onServicesDiscovered(gatt, status);
+            if (isClosed()) return;
             log.i(String.format("onServicesDiscovered: status：%d；", status));
             if (status == BluetoothGatt.GATT_SUCCESS) {
                 synchronized (mConnectionStateLock) {
@@ -681,8 +676,10 @@ public class BleSocket {
                 mHandler.postDelayed(new Runnable() {
                     @Override
                     public void run() {
-                        mBleCallback.connectSuccess(BleSocket.this);
-                        push();
+                        if (!isClosed()) {
+                            mBleCallback.connectSuccess(BleSocket.this);
+                            push();
+                        }
                     }
                 }, 500);
             } else {
@@ -693,6 +690,7 @@ public class BleSocket {
         @Override
         public void onConnectionStateChange(BluetoothGatt gatt, int status, int newState) {
             super.onConnectionStateChange(gatt, status, newState);
+            if (isClosed()) return;
             log.i(String.format("onConnectionStateChange: mConnectionState：%d；newState：%d；" + mBluetoothGatt, mConnectionState, newState));
             if (getConnectionState() == BluetoothAdapter.STATE_CONNECTING
                     && newState == BluetoothAdapter.STATE_CONNECTED) {
@@ -706,12 +704,12 @@ public class BleSocket {
                 switch (getConnectionState()) {
                     case STATE_CONNECTED://设备已连接上
                     case STATE_CONNECTED_DISCOVER:
-                        if (!isClosed()) close();
                         mBleCallback.disconnect(BleSocket.this);
+                        close();
                         break;
                     case STATE_CONNECTING://设备没有连接上，直接断开
-                        if (!isClosed()) close();
                         mBleCallback.connectFail(BleSocket.this, FAIL_STATUS_UNCONNECT_DISCONNECT);
+                        close();
                         break;
                 }
                 //更改连接状态
