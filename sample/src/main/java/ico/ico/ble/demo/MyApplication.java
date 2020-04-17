@@ -3,6 +3,8 @@ package ico.ico.ble.demo;
 import android.content.Context;
 import android.support.multidex.MultiDex;
 
+import com.tencent.bugly.crashreport.CrashReport;
+
 import ico.ico.ble.demo.base.BaseApplication;
 import ico.ico.ble.demo.db.DaoMaster;
 import ico.ico.ble.demo.db.DaoSession;
@@ -29,6 +31,8 @@ public class MyApplication extends BaseApplication {
     public void onCreate() {
         super.onCreate();
         that = this;
+        CrashReport.initCrashReport(getApplicationContext(), "b69263a7af", BuildConfig.DEBUG);
+
         DaoMaster.DevOpenHelper openHelper = new DaoMaster.DevOpenHelper(this, "db");
         daoMaster = new DaoMaster(openHelper.getWritableDatabase());
         daoSession = daoMaster.newSession();
