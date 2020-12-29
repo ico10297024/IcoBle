@@ -100,6 +100,27 @@ public class PromptHelper {
                     return;
                 }
                 CharSequence content = TextUtils.isEmpty(text) ? /*getResources().getString(R.string.ico_application_error) */"程序出错，请稍候再试!" : text;
+                Toast toast = Toast.makeText(mActivity, content, Toast.LENGTH_SHORT);
+                if (mToast == null) {
+                    mToast = toast;
+                }
+                toast.show();
+            }
+        });
+    }
+
+    /** 弹出新土司 */
+    public void showToastss(final CharSequence text) {
+        if (mActivity == null) {
+            return;
+        }
+        mHandler.post(new Runnable() {
+            @Override
+            public void run() {
+                if (mActivity == null) {
+                    return;
+                }
+                CharSequence content = TextUtils.isEmpty(text) ? /*getResources().getString(R.string.ico_application_error) */"程序出错，请稍候再试!" : text;
                 Toast toast = Toast.makeText(mActivity, content, Toast.LENGTH_LONG);
                 if (mToast == null) {
                     mToast = toast;

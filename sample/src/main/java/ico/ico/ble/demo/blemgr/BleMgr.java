@@ -33,7 +33,7 @@ public class BleMgr {
     /**
      * TODO 支持的设备列表,通过{@link BleSocket#setSupportBle(BleSocket.BLeUUIDI...)}设置可支持的设备列表,在BleSocket成功连接上蓝牙设备后会自动匹配列表,匹配成功后将使用对应设备的UUID进行收发数据
      */
-    private BleSocket.BLeUUIDI[] mSupportBle = new BleSocket.BLeUUIDI[]{DmModuleUUID.getInstance(), NbeeUUID.getInstance()};
+    public static final BleSocket.BLeUUIDI[] mSupportBle = new BleSocket.BLeUUIDI[]{DmModuleUUID.getInstance(), NbeeUUID.getInstance()};
 
     /** 电量 */
     private int power;
@@ -85,8 +85,9 @@ public class BleMgr {
     public void closeSocket() {
         currentOperationFlag.finishOper();
         if (mBleSocket != null) {
-            mBleSocket.close();
+            BleSocket bleSocket = mBleSocket;
             mBleSocket = null;
+            bleSocket.close();
         }
     }
 

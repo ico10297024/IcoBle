@@ -80,8 +80,13 @@ public class BleZmyListActivity extends BaseFragActivity implements EasyPermissi
         //从数据库获取数据
         List<Device> list = ((MyApplication) getApplication()).deviceDao.queryBuilder().where(DeviceDao.Properties.Type.eq(DEVICE_TYPE)).list();
         myAdapter.setData(list);
-        myAdapter.notifyDataSetChanged();
-        swipeRefreshLayout.setRefreshing(false);
+        mHandler.post(new Runnable() {
+            @Override
+            public void run() {
+                myAdapter.notifyDataSetChanged();
+                swipeRefreshLayout.setRefreshing(false);
+            }
+        });
     }
 
     @OnClick(R.id.btn_all)
@@ -205,43 +210,14 @@ public class BleZmyListActivity extends BaseFragActivity implements EasyPermissi
                 progressDialog.setMessage(msg);
             }
             if (!progressDialog.isShowing()) {
-                synchronized (progressDialog) {
-                    runOnUiThread(new Runnable() {
-                        @Override
-                        public void run() {
-                            progressDialog.show();
-                        }
-                    });
-                }
+                progressDialog.show();
             }
         }
 
         void dismissProgressDialog() {
             if (progressDialog != null && progressDialog.isShowing()) {
-                synchronized (progressDialog) {
-                    progressDialog.dismiss();
-                }
+                progressDialog.dismiss();
             }
-        }
-
-        /** 通过名字随机控制 */
-        void open() {
-            if (!check()) return;
-            showProgressDialog("正在搜索中...");
-            mBleMgr.open(timeTask, keyword, BleSocket.FT_NAME);
-        }
-
-        /** 指定序列号控制 */
-        void open(String serial) {
-            if (!check()) return;
-            showProgressDialog("正在搜索中...");
-            mBleMgr.open(timeTask, serial, BleSocket.FT_MAC);
-        }
-
-        void queryPower(String serial) {
-            if (!check()) return;
-            showProgressDialog("正在搜索中...");
-            mBleMgr.open(timeTask, serial, BleSocket.FT_MAC);
         }
 
         boolean check() {
@@ -260,6 +236,29 @@ public class BleZmyListActivity extends BaseFragActivity implements EasyPermissi
             return true;
         }
 
+        /** 通过名字随机控制 */
+        void open() {
+            if (!check()) return;
+            showProgressDialog("正在搜索中...");
+            mBleMgr.open(timeTask, keyword, BleSocket.FT_NAME);
+        }
+
+        String mSerial;
+
+        /** 指定序列号控制 */
+        void open(String serial) {
+            mSerial = serial;
+            if (!check()) return;
+            showProgressDialog("正在搜索中...");
+            mBleMgr.open(timeTask, serial, BleSocket.FT_MAC);
+        }
+
+        void queryPower(String serial) {
+            if (!check()) return;
+            showProgressDialog("正在搜索中...");
+            mBleMgr.open(timeTask, serial, BleSocket.FT_MAC);
+        }
+
         void onDestroy() {
             mBleMgr.closeSocket();
         }
@@ -269,14 +268,15 @@ public class BleZmyListActivity extends BaseFragActivity implements EasyPermissi
             public void found(BluetoothDevice device, int rssi) {
                 super.found(device, rssi);
 
+                //数据库存储
                 Device device1 = new Device();
                 device1.setName(device.getName());
                 device1.setSerial(device.getAddress().toUpperCase().replaceAll("[-|:]+", ""));
                 device1.setType(DEVICE_TYPE);
-
                 if (MyApplication.that.deviceDao.queryBuilder().where(DeviceDao.Properties.Serial.eq(device1.getSerial())).buildCount().count() == 0) {
                     MyApplication.that.deviceDao.insert(device1);
                 }
+                //刷新下列表
                 onRefresh();
                 showProgressDialog("正在连接中...");
             }
@@ -284,6 +284,7 @@ public class BleZmyListActivity extends BaseFragActivity implements EasyPermissi
             @Override
             public void receive(BleSocket bleSocket, String uuid, byte[] instruct) {
                 super.receive(bleSocket, uuid, instruct);
+                mPromptHelper.showToasts(String.format("指令接收：%s。", ico.ico.ble.Common.bytes2Int16(" ", instruct)));
                 byte cmd = mBleMgr.analyze(instruct);
                 if (cmd == -1) {
                     return;
@@ -313,15 +314,18 @@ public class BleZmyListActivity extends BaseFragActivity implements EasyPermissi
                 dismissProgressDialog();
                 String msg = "";
                 switch (failStatus) {
-                    case BleSocket.FAIL_STATUS_NONE:
+                    case BleSocket.FAIL_SEND_NONE:
                         msg = "操作失败";
                         break;
-                    case BleSocket.FAIL_STATUS_PATH_NOT_FOUND:
+                    case BleSocket.FAIL_SEND_PATH_NOT_FOUND:
                         msg = "数据通道未找到";
                         break;
-                    case BleSocket.FAIL_STATUS_PATH_NOT_WRITE:
+                    case BleSocket.FAIL_SEND_PATH_NOT_WRITE:
                         msg = "数据通道没有写入特性";
                         break;
+                    case BleSocket.FAIL_SEND_UNAVAILABLE:
+                        mPromptHelper.showToasts("socket已废弃");
+                        return;
                 }
                 mBleMgr.closeSocket();
                 mPromptHelper.showToasts(msg);
@@ -332,6 +336,7 @@ public class BleZmyListActivity extends BaseFragActivity implements EasyPermissi
                 super.sendSuccess(bleSocket, instruct);
                 if (!bleSocket.isClosed()) {
                     showProgressDialog("正在等待操作结果...");
+                    mPromptHelper.showToasts(String.format("指令发送成功：%s。\n等待返回指令...", ico.ico.ble.Common.bytes2Int16(" ", instruct)));
                 }
             }
 
@@ -350,13 +355,13 @@ public class BleZmyListActivity extends BaseFragActivity implements EasyPermissi
                 if (mBleMgr.getCurrentOperationFlag().isOpering()) {
                     String msg = "";
                     switch (failStatus) {
-                        case BleSocket.FAIL_STATUS_SERVICES_UNDISCOVER:
+                        case BleSocket.FAIL_CONNECT_SERVICES_UNDISCOVER:
                             msg = "服务通道未发现";
                             break;
-                        case BleSocket.FAIL_STATUS_UNCONNECT_DISCONNECT:
+                        case BleSocket.FAIL_CONNECT_UNCONNECT_DISCONNECT:
                             msg = "连接失败";
                             break;
-                        case BleSocket.FAIL_STATUS_KNOWN_DEVICE:
+                        case BleSocket.FAIL_CONNECT_KNOWN_DEVICE:
                             msg = "无法识别的设备";
                             break;
                     }

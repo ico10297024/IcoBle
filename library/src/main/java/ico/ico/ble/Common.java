@@ -4,7 +4,7 @@ package ico.ico.ble;
  * Created by root on 18-4-19.
  */
 
-class Common {
+public class Common {
     /**
      * 将一个字符串数组根据某个字符串连接
      *

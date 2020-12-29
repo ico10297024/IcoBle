@@ -299,15 +299,18 @@ public class BleNbeeListActivity extends BaseFragActivity implements EasyPermiss
                 dismissProgressDialog();
                 String msg = "";
                 switch (failStatus) {
-                    case BleSocket.FAIL_STATUS_NONE:
+                    case BleSocket.FAIL_SEND_NONE:
                         msg = "操作失败";
                         break;
-                    case BleSocket.FAIL_STATUS_PATH_NOT_FOUND:
+                    case BleSocket.FAIL_SEND_PATH_NOT_FOUND:
                         msg = "数据通道未找到";
                         break;
-                    case BleSocket.FAIL_STATUS_PATH_NOT_WRITE:
+                    case BleSocket.FAIL_SEND_PATH_NOT_WRITE:
                         msg = "数据通道没有写入特性";
                         break;
+                    case BleSocket.FAIL_SEND_UNAVAILABLE:
+                        mPromptHelper.showToasts("socket已废弃");
+                        return;
                 }
                 mNbeeMgr.closeSocket();
                 mPromptHelper.showToasts(msg);
@@ -336,13 +339,13 @@ public class BleNbeeListActivity extends BaseFragActivity implements EasyPermiss
                 if (mNbeeMgr.getCurrentOperationFlag().isOpering()) {
                     String msg = "";
                     switch (failStatus) {
-                        case BleSocket.FAIL_STATUS_SERVICES_UNDISCOVER:
+                        case BleSocket.FAIL_CONNECT_SERVICES_UNDISCOVER:
                             msg = "服务通道未发现";
                             break;
-                        case BleSocket.FAIL_STATUS_UNCONNECT_DISCONNECT:
+                        case BleSocket.FAIL_CONNECT_UNCONNECT_DISCONNECT:
                             msg = "连接失败";
                             break;
-                        case BleSocket.FAIL_STATUS_KNOWN_DEVICE:
+                        case BleSocket.FAIL_CONNECT_KNOWN_DEVICE:
                             msg = "无法识别的设备";
                             break;
                     }

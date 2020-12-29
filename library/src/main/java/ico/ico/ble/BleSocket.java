@@ -50,31 +50,35 @@ public class BleSocket {
      * 服务未发现
      * 连接错误
      */
-    public static final int FAIL_STATUS_SERVICES_UNDISCOVER = 1;
+    public static final int FAIL_CONNECT_SERVICES_UNDISCOVER = 1;
     /**
      * 蓝牙连接未连接，直接断开
      * 连接错误
      */
-    public static final int FAIL_STATUS_UNCONNECT_DISCONNECT = 2;
+    public static final int FAIL_CONNECT_UNCONNECT_DISCONNECT = 2;
     /**
      * 通道发送函数直接返回false
      * 发送错误
      */
-    public static final int FAIL_STATUS_NONE = 3;
+    public static final int FAIL_SEND_NONE = 3;
     /**
      * 用于发送数据的通道未找到
      * 发送错误
      */
-    public static final int FAIL_STATUS_PATH_NOT_FOUND = 4;
+    public static final int FAIL_SEND_PATH_NOT_FOUND = 4;
     /**
      * 发送数据通道没有写入特性
      * 发送错误
      */
-    public static final int FAIL_STATUS_PATH_NOT_WRITE = 5;
+    public static final int FAIL_SEND_PATH_NOT_WRITE = 5;
     /**
      * 无法识别的设备种类
      */
-    public static final int FAIL_STATUS_KNOWN_DEVICE = 6;
+    public static final int FAIL_CONNECT_KNOWN_DEVICE = 6;
+    /**
+     * 当前socket已废弃
+     */
+    public static final int FAIL_SEND_UNAVAILABLE = 7;
     //endregion
 
     //region 列举蓝牙操作时各个阶段的状态
@@ -91,9 +95,13 @@ public class BleSocket {
      */
     public static final int STATE_CONNECTED = 2;
     /**
-     * 蓝牙真正意义上的连接成功,可以进行数据的交互
+     * 蓝牙连接成功,还不能进行数据交互，后续要判断设备类型以及通道
      */
     public static final int STATE_CONNECTED_DISCOVER = 3;
+    /**
+     * 蓝牙连接成功并且已确定设备类型以及通道，该模式下才能真正进行数据交互
+     */
+    public static final int STATE_CONNECTED_DISCOVER_READY = 4;
     /**
      * 默认状态下,处于刚创建
      */
@@ -139,7 +147,7 @@ public class BleSocket {
     /**
      * 在蓝牙搜索时,用于何种类型的筛选
      */
-    int mType;
+    int mType = -1;
 
     Handler mHandler;
     /**
@@ -223,7 +231,11 @@ public class BleSocket {
      * 连接蓝牙设备，并获取服务通道
      */
     public void connect() {
-        if (getConnectionState() == STATE_CONNECTED) {
+        if (getConnectionState() == STATE_DISCONNECTED) {
+            log.w(String.format("%s,当前Socket不能二次使用", toString()), TAG, BleSocket.this.hashCode() + "");
+            return;
+        }
+        if (getConnectionState() != STATE_UNKNOWN) {
             log.w(String.format("%s,设备已连接，连接操作被取消", toString()), TAG, BleSocket.this.hashCode() + "");
             return;
         }
@@ -270,17 +282,20 @@ public class BleSocket {
      * @return boolean
      */
     public boolean isClosed() {
-        return closed;
+        if (closed) {
+            return closed;
+        } else if (getConnectionState() == STATE_DISCONNECTED) {
+            close();
+            return true;
+        } else {
+            return false;
+        }
     }
 
     /**
      * 获取当前socket的连接状态
      *
-     * @return int {@link #STATE_UNKNOWN}
-     * {@link #STATE_CONNECTING}
-     * {@link #STATE_CONNECTED}
-     * {@link #STATE_CONNECTED_DISCOVER}
-     * {@link #STATE_DISCONNECTED}
+     * @return int {@link #STATE_UNKNOWN,#STATE_CONNECTING,#STATE_CONNECTED,#STATE_CONNECTED_DISCOVER,#STATE_CONNECTED_DISCOVER_READY,#STATE_DISCONNECTED}
      */
     public int getConnectionState() {
         return mConnectionState;
@@ -327,7 +342,7 @@ public class BleSocket {
             return true;
         }
         /*有无蓝牙设备对*/
-        if (mBluetoothDevice == null) {
+        if (mBluetoothDevice == null || getConnectionState() == STATE_UNKNOWN) {
             if (mType == 0) {
                 mBluetoothDevice = BleHelper.getBleAdapter(mContext).getRemoteDevice(Common.insert(mKeywordFilter, ":", 2));
             }
@@ -341,30 +356,32 @@ public class BleSocket {
                 mBleCallback.found(mBluetoothDevice, 0);
                 connect();
             }
-        } else if (getConnectionState() == STATE_UNKNOWN) {
-            mBluetoothDevice = BleHelper.getBleAdapter(mContext).getRemoteDevice(mBluetoothDevice.getAddress());
-            connect();
-        } else {
+        } else if (getConnectionState() == STATE_CONNECTED_DISCOVER_READY) {
             String uuid = mCurrentBleUUID.getWriteUUID();
             byte[] data = mDataBuffer.get(0);
             mDataBuffer.remove(0);
             //找到要发送的通道
             BluetoothGattCharacteristic characteristic = find(uuid);
             if (characteristic == null) {
-                mBleCallback.sendFail(this, data, FAIL_STATUS_PATH_NOT_FOUND);
+                mBleCallback.sendFail(this, data, FAIL_SEND_PATH_NOT_FOUND);
                 return false;
             }
             if (!canWrite(characteristic)) {
-                mBleCallback.sendFail(this, data, FAIL_STATUS_PATH_NOT_WRITE);
+                mBleCallback.sendFail(this, data, FAIL_SEND_PATH_NOT_WRITE);
                 return false;
             }
             characteristic.setValue(data);
             log.w(String.format("%s,发送数据：%s；UUID:%s", this.toString(), Common.bytes2Int16(" ", data), uuid), TAG, BleSocket.this.hashCode() + "");
             boolean success = mBluetoothGatt.writeCharacteristic(characteristic);
             if (!success) {
-                mBleCallback.sendFail(this, data, FAIL_STATUS_NONE);
+                mBleCallback.sendFail(this, data, FAIL_SEND_NONE);
             }
             return success;
+        }else if(getConnectionState() == STATE_DISCONNECTED){
+            byte[] data = mDataBuffer.get(0);
+            mBleCallback.sendFail(this, data, FAIL_SEND_UNAVAILABLE);
+        } else {
+            log.w(String.format("%s,当前处于不可发送状态，等待下次数据发送触发", this.toString()), TAG, BleSocket.this.hashCode() + "");
         }
         return false;
     }
@@ -663,7 +680,7 @@ public class BleSocket {
                 }
                 //确定当前连接的蓝牙设备属于给定的设备类别表中的哪一种
                 if (mSupportBle == null || mSupportBle.size() == 0) {
-                    mBleCallback.connectFail(BleSocket.this, FAIL_STATUS_KNOWN_DEVICE);
+                    mBleCallback.connectFail(BleSocket.this, FAIL_CONNECT_KNOWN_DEVICE);
                     return;
                 }
                 Iterator<BLeUUIDI> iter = mSupportBle.iterator();
@@ -676,10 +693,13 @@ public class BleSocket {
                     }
                 }
                 if (mCurrentBleUUID == null) {
-                    mBleCallback.connectFail(BleSocket.this, FAIL_STATUS_KNOWN_DEVICE);
+                    mBleCallback.connectFail(BleSocket.this, FAIL_CONNECT_KNOWN_DEVICE);
                     return;
                 }
                 setReadCharacteristicNotification();
+                synchronized (mConnectionStateLock) {
+                    mConnectionState = STATE_CONNECTED_DISCOVER_READY;
+                }
                 //这是使用延迟,是由于setReadCharacteristicNotification后不能立即发送数据,立即发送会直接返回false
                 mHandler.postDelayed(new Runnable() {
                     @Override
@@ -691,7 +711,7 @@ public class BleSocket {
                     }
                 }, 500);
             } else {
-                mBleCallback.connectFail(BleSocket.this, FAIL_STATUS_SERVICES_UNDISCOVER);
+                mBleCallback.connectFail(BleSocket.this, FAIL_CONNECT_SERVICES_UNDISCOVER);
             }
         }
 
@@ -710,13 +730,12 @@ public class BleSocket {
             }
             if (newState == BluetoothAdapter.STATE_DISCONNECTED) {//连接断开
                 switch (getConnectionState()) {
-                    case STATE_CONNECTED://设备已连接上
-                    case STATE_CONNECTED_DISCOVER:
+                    case STATE_CONNECTED_DISCOVER_READY://设备已连接上
                         mBleCallback.disconnect(BleSocket.this);
                         close();
                         break;
-                    case STATE_CONNECTING://设备没有连接上，直接断开
-                        mBleCallback.connectFail(BleSocket.this, FAIL_STATUS_UNCONNECT_DISCONNECT);
+                    default://设备没有连接上，直接断开
+                        mBleCallback.connectFail(BleSocket.this, FAIL_CONNECT_UNCONNECT_DISCONNECT);
                         close();
                         break;
                 }

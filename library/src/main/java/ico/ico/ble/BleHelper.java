@@ -12,6 +12,7 @@ import android.content.IntentFilter;
 import android.os.Build;
 
 import java.util.List;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 /**
  * 蓝牙4.0帮助类，用于操作蓝牙
@@ -50,7 +51,19 @@ public class BleHelper {
      */
     private BleFilter mBleFilter;
 
+    /**
+     * 搜索器,根据不同版本使用不同的搜索api,不过最终都通过{@link BluetoothDevice#ACTION_FOUND}来接收结果
+     * 在最新版本中使用混合搜索器,也就是同时调用不同版本的api来实现最大范围的搜索
+     */
     private IScanner scanner;
+
+    /**
+     * 经过测试,某些设备在被搜索到一次后不会被再一次搜索到,所以间隔几秒停止再开启搜索的方式进行搜索
+     * 而某些设备需要持续开启搜索几秒之后才可能被搜索到
+     * 综上,所以需要修改这个间隔时间来达到一个平衡
+     * 目前10S并不是一个标准值
+     */
+    private long interval = 10 * 1000l;
 
     /**
      * 该构造函数要求传入一个上下文以及回调对象,没有默认的蓝牙筛选器,也就是搜索到的所有ble都会进行回调
@@ -68,7 +81,9 @@ public class BleHelper {
                 BluetoothDevice device = intent.getParcelableExtra(BluetoothDevice.EXTRA_DEVICE);
                 int rssi = intent.getShortExtra(BluetoothDevice.EXTRA_RSSI, (short) -1);
                 synchronized (mBleCallback) {
-                    if (mBleFilter != null && mBleFilter.onBleFilter(device)) {
+                    if (mBleFilter == null) {
+                        mBleCallback.found(device, rssi);
+                    } else if (mBleFilter.onBleFilter(device)) {
                         mBleCallback.found(device, rssi);
                     } else {
                         log.d(String.format("name:%s,mac:%s,rssi:%d,过滤设备", device.getName(), device.getAddress(), rssi, TAG, BleHelper.this.hashCode() + ""));
@@ -85,7 +100,8 @@ public class BleHelper {
 //        } else {
 //            scanner = new Scanner();
 //        }
-        scanner = new Scanner();
+        scanner = new MixScanner();
+//        scanner = new Scanner21();
     }
 
     //region static
@@ -138,29 +154,32 @@ public class BleHelper {
     }
     //endregion
 
-    /**
-     * 销毁
-     */
+    /** 销毁 */
     public void onDestroy() {
         mContext.unregisterReceiver(foundReceiver);
         unregisterStateChanged();
         stopScan();
     }
 
-    /**
-     * 开启搜索
-     */
-    public void startScan() {
-        log.d("开启搜索", TAG, BleHelper.this.hashCode() + "");
-        scanner.startScan();
+    private AtomicBoolean isScanning = new AtomicBoolean();
+
+    /** 开启搜索 */
+    public synchronized boolean isScanning() {
+        return isScanning.get();
     }
 
-    /**
-     * 停止搜索
-     */
-    public void stopScan() {
+    /** 开启搜索 */
+    public synchronized void startScan() {
+        log.d("开启搜索", TAG, BleHelper.this.hashCode() + "");
+        scanner.startScan();
+        isScanning.set(true);
+    }
+
+    /** 停止搜索 */
+    public synchronized void stopScan() {
         log.d("结束搜索", TAG, BleHelper.this.hashCode() + "");
         scanner.stopScan();
+        isScanning.set(false);
     }
 
     /**
@@ -175,17 +194,23 @@ public class BleHelper {
         mContext.registerReceiver(stateChangedReceiver, intentFilter);
     }
 
-    /**
-     * 注销蓝牙状态更改的广播
-     */
+    /** 注销蓝牙状态更改的广播 */
     public void unregisterStateChanged() {
         if (stateChangedReceiver != null) {
             mContext.unregisterReceiver(stateChangedReceiver);
             stateChangedReceiver = null;
         }
     }
-
     //region GETSET
+
+    public long getInterval() {
+        return interval;
+    }
+
+    public void setInterval(long interval) {
+        this.interval = interval;
+    }
+
     public BleCallback getBleSmCallback() {
         return mBleCallback;
     }
@@ -242,21 +267,19 @@ public class BleHelper {
         };
 
         @Override
-        public void startScan() {
-            getBleAdapter(mContext).startLeScan(leScanCallback);
-//            if (scanThread == null || scanThread.isClosed()) {
-//                scanThread = new ScanThread();
-//                scanThread.start();
-//            }
+        public synchronized void startScan() {
+            if (scanThread == null || scanThread.isClosed()) {
+                scanThread = new ScanThread();
+                scanThread.start();
+            }
         }
 
         @Override
-        public void stopScan() {
-            getBleAdapter(mContext).stopLeScan(leScanCallback);
-//            if (scanThread != null) {
-//                scanThread.close();
-//                scanThread = null;
-//            }
+        public synchronized void stopScan() {
+            if (scanThread != null) {
+                scanThread.close();
+                scanThread = null;
+            }
         }
 
         /**
@@ -272,21 +295,20 @@ public class BleHelper {
             public void run() {
                 while (!isClosed()) {
                     getBleAdapter(mContext).startLeScan(leScanCallback);
+                    getBleAdapter(mContext).startDiscovery();
                     try {
-                        Thread.currentThread().sleep(1000l);
+                        Thread.currentThread().sleep(interval);
                     } catch (InterruptedException e) {
-                        e.printStackTrace();
+                        //e.printStackTrace();
                     }
                     getBleAdapter(mContext).stopLeScan(leScanCallback);
+                    getBleAdapter(mContext).cancelDiscovery();
                 }
             }
         }
     }
 
-    /**
-     * 5.0+使用的搜索器
-     */
-    @android.support.annotation.RequiresApi(api = Build.VERSION_CODES.LOLLIPOP)
+    /** 5.0+使用的搜索器 */
     class Scanner21 implements IScanner {
         /**
          * 5.0+,蓝牙搜索使用的回调函数
@@ -323,6 +345,39 @@ public class BleHelper {
         @Override
         public void stopScan() {
             getBleAdapter(mContext).getBluetoothLeScanner().stopScan(scanCallback);
+        }
+
+    }
+
+
+    /** 混合搜索器，将同时启动老版本和新版本的搜索 */
+    class MixScanner implements IScanner {
+
+        IScanner scanner;
+        IScanner scanner21;
+
+
+        public MixScanner() {
+            scanner = new Scanner();
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
+                scanner21 = new Scanner21();
+            }
+        }
+
+        @Override
+        public void startScan() {
+            scanner.startScan();
+            if (scanner21 != null) {
+                scanner21.startScan();
+            }
+        }
+
+        @Override
+        public void stopScan() {
+            scanner.stopScan();
+            if (scanner21 != null) {
+                scanner21.stopScan();
+            }
         }
     }
 }

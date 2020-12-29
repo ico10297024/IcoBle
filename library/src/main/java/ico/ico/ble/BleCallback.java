@@ -37,9 +37,9 @@ public class BleCallback {
      *
      * @param bleSocket  蓝牙的连接对象
      * @param instruct   数据
-     * @param failStatus 失败状态码{@link BleSocket#FAIL_STATUS_NONE}
-     *                   {@link BleSocket#FAIL_STATUS_PATH_NOT_FOUND}
-     *                   {@link BleSocket#FAIL_STATUS_PATH_NOT_WRITE}
+     * @param failStatus 失败状态码{@link BleSocket#FAIL_SEND_NONE}
+     *                   {@link BleSocket#FAIL_SEND_PATH_NOT_FOUND}
+     *                   {@link BleSocket#FAIL_SEND_PATH_NOT_WRITE}
      */
     public void sendFail(BleSocket bleSocket, byte[] instruct, int failStatus) {
         log.w(String.format("%s,发送数据失败,错误状态码：%d,数据：%s", bleSocket.toString(), failStatus, Common.bytes2Int16(" ", instruct)), TAG, BleCallback.this.hashCode() + "");
@@ -50,9 +50,9 @@ public class BleCallback {
      * 当蓝牙连接失败时进行回调
      *
      * @param bleSocket  蓝牙的连接对象
-     * @param failStatus 失败状态码{@link BleSocket#FAIL_STATUS_SERVICES_UNDISCOVER}
-     *                   {@link BleSocket#FAIL_STATUS_UNCONNECT_DISCONNECT}
-     *                   {@link BleSocket#FAIL_STATUS_KNOWN_DEVICE}
+     * @param failStatus 失败状态码{@link BleSocket#FAIL_CONNECT_SERVICES_UNDISCOVER}
+     *                   {@link BleSocket#FAIL_CONNECT_UNCONNECT_DISCONNECT}
+     *                   {@link BleSocket#FAIL_CONNECT_KNOWN_DEVICE}
      */
     public void connectFail(BleSocket bleSocket, int failStatus) {
         log.e(String.format("%s,连接失败,failStatus：%d", bleSocket.toString(), failStatus), TAG, BleCallback.this.hashCode() + "");
@@ -86,5 +86,10 @@ public class BleCallback {
      */
     public void found(BluetoothDevice device, int rssi) {
         log.w(String.format("name:%s,mac:%s,rssi:%d,发现设备", device.getName(), device.getAddress(), rssi), TAG, BleCallback.this.hashCode() + "");
+    }
+
+
+    public void closed(BleSocket bleSocket){
+        log.e(String.format("%s,Socket关闭", bleSocket.toString()), TAG, BleCallback.this.hashCode() + "");
     }
 }
