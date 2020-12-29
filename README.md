@@ -1,26 +1,3 @@
-# IcoBle
-# 引入方式
-## Gradle
-```
-compile 'ico.ico.ble:IcoBle:1.0.2'
-```
-## Maven
-```
-<dependency>
-  <groupId>ico.ico.ble</groupId>
-  <artifactId>IcoBle</artifactId>
-  <version>1.0.2</version>
-  <type>pom</type>
-</dependency>
-```
-## lvy
-```
-<dependency org='ico.ico.ble' name='IcoBle' rev='1.0.2'>
-  <artifact name='IcoBle' ext='pom' ></artifact>
-</dependency>
-```
-
-
 # 项目说明
 基于代码设计复用性的考虑，我设计了一套蓝牙操作以及针对实际工作中基于蓝牙协议版本设计的一系列蓝牙操作的类
 
